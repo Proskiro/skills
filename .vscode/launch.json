@@ -1,0 +1,38 @@
+// {
+//     "version": "0.2.0",
+//     "configurations": [
+//       {
+//         "name": "Debug Scrapy (Prompt)",
+//         "type": "debugpy",
+//         "request": "launch",
+//         "program": "${workspaceFolder}/.venv/bin/python",
+//         "args": ["-m", "scrapy", "crawl", "${input:spiderName}"],
+//         "cwd": "${workspaceFolder}/my_scraper",
+//         "console": "integratedTerminal",
+//         "justMyCode": false
+//       }
+//     ],
+//     "inputs": [
+//       {
+//         "id": "spiderName",
+//         "type": "promptString",
+//         "description": "Enter the Scrapy spider name",
+//         "default": "esco_occupations"
+//       }
+//     ]
+//   }
+
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Scrapy: crawl esco_occupations",
+      "type": "python",
+      "request": "launch",
+      "module": "scrapy",
+      "args": ["crawl", "esco_occupations"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
+}

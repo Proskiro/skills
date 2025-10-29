@@ -1,4 +1,4 @@
-#!/Users/eikram/Documents/Stickies/Other/Skills/.venv/bin/python3
+#!/Users/eikram/Documents/Stickies/Other/Skills/.venv/bin/python3.11
 
 import sys
 import json
