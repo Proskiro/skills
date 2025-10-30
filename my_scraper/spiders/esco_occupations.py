@@ -1,6 +1,7 @@
 import json
 
 import scrapy
+from loaders import OccupationLoader
 
 
 class EscoOccupationsSpider(scrapy.Spider):
@@ -12,3 +13,5 @@ class EscoOccupationsSpider(scrapy.Spider):
 
     def parse(self, response):
         data = json.loads(response.body)
+        item = OccupationLoader(response=response)
+        yield item.load_item()

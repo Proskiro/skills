@@ -1,0 +1,60 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.pdb
+
+# --- Virtual Environments ---
+.venv/
+venv/
+env/
+ENV/
+*.env
+*.venv
+
+# --- Package / Build ---
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- Scrapy ---
+.scrapy/
+.cache/
+*.log
+*.csv
+*.json
+*.xml
+
+# --- IDE / OS Files ---
+.idea/
+.vscode/
+.DS_Store
+*.swp
+Thumbs.db
+
+# --- Test / Coverage ---
+.pytest_cache/
+.tox/
+coverage.xml
+htmlcov/
+*.cover
+
+# --- Environment Config ---
+.env
+.env.local
+.env.*
+*.ini
+*.cfg
+
+# --- Temporary Files ---
+tmp/
+temp/
+*.bak
+*.tmp
+
+# --- Jupyter / Notebooks ---
+.ipynb_checkpoints/
