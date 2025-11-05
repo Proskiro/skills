@@ -10,13 +10,13 @@ class EscoOccupationsSpider(scrapy.Spider):
     name = "esco_occupations"
     allowed_domains = ["ec.europa.eu"]
     start_urls = [
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/occupation/68d973df-bf10-4bf7-9a1b-fbd9f604b9db&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C0&language=en",
     ]
 
     def parse(self, response):
         data = json.loads(response.body)
         item = OccupationLoader(response=response)
-        item.add_value("preferred_label", data.get("title"))
+        item.add_value("preferred_title", data.get("title"))
         item.add_value("alt_label", data.get("preferredLabel").get("en"))
         item.add_value("description", data.get("description").get("en").get("literal"))
         item.add_value("isco_code", data.get("code"))
@@ -48,6 +48,6 @@ class EscoOccupationsSpider(scrapy.Spider):
                 s_loader.add_value("uri", skill.get("uri"))
                 skillType = re.search(r"([^/]+)$", skill.get("skillType")).group(1)
                 s_loader.add_value("skill_type", skillType)
-                s_loader.add_value("preferred_label", skill.get("title"))
+                s_loader.add_value("preferred_title", skill.get("title"))
                 skills.append(s_loader.load_item())
         return skills

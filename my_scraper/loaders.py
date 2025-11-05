@@ -25,7 +25,7 @@ class OccupationLoader(BaseESCOLoader):
     default_item_class = OccupationItem
 
     # Flatten only scalar fields
-    preferred_label_out = TakeFirst()
+    preferred_title_out = TakeFirst()
     alt_label_out = TakeFirst()
     description_out = TakeFirst()
     isco_code_out = TakeFirst()
@@ -34,8 +34,10 @@ class OccupationLoader(BaseESCOLoader):
     # Preserve structured data fields
     essential_skills_out = Identity()
     optional_skills_out = Identity()
-    broader_out = Identity()
-    narrower_out = Identity()
+    broader_concept_out = Identity()
+    narrower_concept_out = Identity()
+    broader_isco_group_out = Identity()
+    narrower_isco_group_out = Identity()
 
 
 class SkillLoader(BaseESCOLoader):
@@ -47,7 +49,7 @@ class SkillLoader(BaseESCOLoader):
     default_item_class = SkillItem
 
     # Scalar fields (flatten lists to single values)
-    preferred_label_out = TakeFirst()
+    preferred_title_out = TakeFirst()
     description_out = TakeFirst()
     skill_type_out = TakeFirst()
     uri_out = TakeFirst()
