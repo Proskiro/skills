@@ -7,7 +7,7 @@ import scrapy
 
 
 class OccupationItem(scrapy.Item):
-    preferred_label = scrapy.Field()
+    preferred_title = scrapy.Field()
     alt_label = scrapy.Field()
     description = scrapy.Field()
     isco_code = scrapy.Field()
@@ -24,5 +24,5 @@ class OccupationItem(scrapy.Item):
 class SkillItem(scrapy.Item):
     uri = scrapy.Field()
     skill_type = scrapy.Field()
-    preferred_label = scrapy.Field()
+    preferred_title = scrapy.Field()
     description = scrapy.Field()

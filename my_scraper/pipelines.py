@@ -1,5 +1,5 @@
 import psycopg2
-# from psycopg2.extras import execute_values
+from psycopg2.extras import execute_values
 from scrapy.exceptions import NotConfigured
 
 
@@ -41,112 +41,112 @@ class PostgresPipeline:
         self.cursor.close()
         self.conn.close()
 
-#     def process_item(self, item, spider):
-#         # Determine which table to insert into based on item type
-#         if item.__class__.__name__ == "SkillItem":
-#             self.insert_skill(item)
-#         elif item.__class__.__name__ == "OccupationItem":
-#             self.insert_occupation(item)
-#         else:
-#             spider.logger.warning(f"Unknown item type: {type(item)}")
+    def process_item(self, item, spider):
+        # Determine which table to insert into based on item type
+        if item.__class__.__name__ == "SkillItem":
+            self.insert_skill(item)
+        elif item.__class__.__name__ == "OccupationItem":
+            self.insert_occupation(item)
+        else:
+            spider.logger.warning(f"Unknown item type: {type(item)}")
 
-#         return item
+        return item
 
 #     # ---- insert methods ----
 
-#     def insert_occupation(self, item):
-#         # existing insert query
-#         query = """
-#             INSERT INTO occupations (
-#                 preferred_title, alt_label, description, isco_code, uri, is_leaf, is_functional_leaf
-#             )
-#             VALUES %s
-#             ON CONFLICT (uri) DO NOTHING;
-#         """
+    def insert_occupation(self, item):
+        # existing insert query
+        query = """
+            INSERT INTO occupations (
+                preferred_title, alt_label, description, isco_code, uri, is_leaf, is_functional_leaf
+            )
+            VALUES %s
+            ON CONFLICT (uri) DO NOTHING;
+        """
 
-#         is_functional_leaf = bool(item.get('essentialSkills') or item.get('optionalSkills'))
-#         is_leaf = not (item.get('narrowerOccupation') or item.get('narrowerConcept'))
+        is_functional_leaf = bool(item.get('essential_skills') or item.get('optional_skills'))
+        is_leaf = not (item.get('narrower_occupation') or item.get('narrower_concept'))
 
-#         values = [(
-#             item.get('preferredTitle'),
-#             item.get('altLabel'),
-#             item.get('description'),
-#             item.get('isco_code'),
-#             item.get('uri'),
-#             is_leaf,
-#             is_functional_leaf
-#         )]
+        values = [(
+            item.get('preferred_title'),
+            item.get('alt_label'),
+            item.get('description'),
+            item.get('isco_code'),
+            item.get('uri'),
+            is_leaf,
+            is_functional_leaf
+        )]
 
-#         execute_values(self.cursor, query, values)
+        execute_values(self.cursor, query, values)
 
-#     def insert_skill(self, item):
-#         query = """
-#             INSERT INTO skills (uri, skill_type, preferred_label, description)
-#             VALUES %s
-#             ON CONFLICT (uri) DO NOTHING;
-#         """
-#         values = [
-#             (
-#                 item.get("uri"),
-#                 item.get("skill_type"),
-#                 item.get("preferred_label"),
-#                 item.get("description"),
-#             )
-#         ]
-#         execute_values(self.cursor, query, values)
+    def insert_skill(self, item):
+        query = """
+            INSERT INTO skills (uri, skill_type, preferred_title, description)
+            VALUES %s
+            ON CONFLICT (uri) DO NOTHING;
+        """
+        values = [
+            (
+                item.get("uri"),
+                item.get("skill_type"),
+                item.get("preferred_title"),
+                item.get("description"),
+            )
+        ]
+        execute_values(self.cursor, query, values)
 
-#     def insert_occupation_relations(self, item):
-#         # broaderISCOGroup
-#         if item.get("broaderISCOGroup"):
-#             self._insert_relation(
-#                 "occupation_relations",
-#                 item["broaderISCOGroup"],
-#                 item["uri"],
-#                 "broaderISCOGroup",
-#             )
+    def insert_occupation_relations(self, item):
+        # broaderISCOGroup
+        if item.get("broader_isco_group"):
+            self._insert_relation(
+                "occupation_relations",
+                item["broader_isco_group"],
+                item["uri"],
+                "broader_isco_group",
+            )
 
-#         # broaderConcept
-#         if item.get("broaderConcept"):
-#             self._insert_relation(
-#                 "occupation_relations",
-#                 item["broaderConcept"],
-#                 item["uri"],
-#                 "broaderConcept",
-#             )
+        # broaderConcept
+        if item.get("broader_concept"):
+            self._insert_relation(
+                "occupation_relations",
+                item["broader_concept"],
+                item["uri"],
+                "broader_concept",
+            )
 
-#         # narrowerOccupation
-#         for child in item.get("narrowerOccupation", []):
-#             self._insert_relation(
-#                 "occupation_relations", item["uri"], child, "narrowerOccupation"
-#             )
+        # narrowerOccupation
+        for child in item.get("narrower_occupation", []):
+            self._insert_relation(
+                "occupation_relations", item["uri"], child, "narrower_occupation"
+            )
 
-#     def insert_skill_relations(self, item):
-#         if item.get("broaderConcept"):
-#             self._insert_relation(
-#                 "skill_relations", item["broaderConcept"], item["uri"], "broaderConcept"
-#             )
+    def insert_skill_relations(self, item):
+        if item.get("broader_concept"):
+            self._insert_relation(
+                "skill_relations", item["broader_concept"], item["uri"], "broader_concept"
+            )
 
-#         for child in item.get("narrowerConcepts", []):
-#             self._insert_relation(
-#                 "skill_relations", item["uri"], child, "narrowerConcept"
-#             )
+        for child in item.get("narrower_concept", []):
+            self._insert_relation(
+                "skill_relations", item["uri"], child, "narrower_concept"
+            )
 
-#     def _insert_relation(self, table, parent_uri, child_uri, rel_type):
-#         query = f"""
-#             INSERT INTO {table} (parent_uri, child_uri, relation_type)
-#             VALUES (%s, %s, %s)
-#             ON CONFLICT DO NOTHING;
-#         """
-#         self.cursor.execute(query, (parent_uri, child_uri, rel_type))
+    def _insert_relation(self, table, parent_uri, child_uri, rel_type):
+        query = f"""
+            INSERT INTO {table} (parent_uri, child_uri, relation_type)
+            VALUES (%s, %s, %s)
+            ON CONFLICT DO NOTHING;
+        """
+        self.cursor.execute(query, (parent_uri, child_uri, rel_type))
 
-#     def insert_relationships(self, occupation_uri, skills, rel_type):
-#         query = """
-#             INSERT INTO occupation_skills (occupation_uri, skill_uri, relation_type)
-#             VALUES %s
-#             ON CONFLICT DO NOTHING;
-#         """
-#         values = [
-#             (occupation_uri, s.get("uri"), rel_type) for s in skills if s.get("uri")
-#         ]
-#         if values:
-#             execute_values(self.cursor, query, values)
+    def insert_relationships(self, occupation_uri, skills, rel_type):
+        query = """
+            INSERT INTO occupation_skills (occupation_uri, skill_uri, relation_type)
+            VALUES %s
+            ON CONFLICT DO NOTHING;
+        """
+        values = [
+            (occupation_uri, s.get("uri"), rel_type) for s in skills if s.get("uri")
+        ]
+        if values:
+            execute_values(self.cursor, query, values)
