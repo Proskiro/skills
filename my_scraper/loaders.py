@@ -30,14 +30,14 @@ class OccupationLoader(BaseESCOLoader):
     description_out = TakeFirst()
     isco_code_out = TakeFirst()
     uri_out = TakeFirst()
+    class_name_out = TakeFirst()
 
     # Preserve structured data fields
     essential_skills_out = Identity()
     optional_skills_out = Identity()
-    broader_concept_out = Identity()
     narrower_concept_out = Identity()
+    narrower_occupation_out = Identity()
     broader_isco_group_out = Identity()
-    narrower_isco_group_out = Identity()
 
 
 class SkillLoader(BaseESCOLoader):
