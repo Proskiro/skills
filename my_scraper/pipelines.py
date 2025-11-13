@@ -40,7 +40,7 @@ class PostgresPipeline:
         if isinstance(item, OccupationItem):
             for skill_list_name in ("essential_skills", "optional_skills"):
                 for skill in item.get(skill_list_name, []):
-                    self.insert_skill(skill)
+                    self.upsert_skill(skill, spider)
             self.insert_occupation(item)
             self.insert_relationships(
                 item.get("uri"), item.get("essential_skills", []), "essential"
@@ -50,7 +50,7 @@ class PostgresPipeline:
             )
 
         elif isinstance(item, SkillItem):
-            self.insert_skill(item)
+            self.upsert_skill(item, spider)
 
         elif isinstance(item, OccupationHierarchyItem):
             self.insert_hierarchy(item)
@@ -85,16 +85,68 @@ class PostgresPipeline:
         ]
         execute_values(self.cursor, query, values)
 
-    def insert_skill(self, item):
-        query = """
+    def upsert_skill(self, item, spider):
+        is_leaf = not bool(item.get("narrowerConcept"))
+        is_functional_leaf = not bool(item.get("narrowerSkill"))
+
+        """
+        Insert or enrich a skill record.
+        - If called from the occupations spider: insert minimal info.
+        - If called from the skills spider: enrich / fill in missing fields.
+        """
+
+        # Extract all possible fields
+        values = (
+            item.get("uri"),
+            item.get("preferred_title"),
+            item.get("alt_label"),
+            item.get("description"),
+            item.get("skill_code"),
+            item.get("broader_skill_uri"),
+            item.get("skill_type"),
+            item.get("reuse_level"),
+            item.get("scope_note"),
+            item.get("class_name"),
+            is_leaf,
+            is_functional_leaf,
+        )
+
+        # Sequential logic: enrichment spider runs later, so we can safely fill in details
+        if spider.name == "esco_occupations":
+            query = """
             INSERT INTO skills (uri, skill_type, preferred_title)
             VALUES %s
             ON CONFLICT (uri) DO NOTHING;
-        """
-        values = [
-            (item.get("uri"), item.get("skill_type"), item.get("preferred_title"))
-        ]
-        execute_values(self.cursor, query, values)
+            """
+            execute_values(
+                self.cursor,
+                query,
+                [
+                    (
+                        item.get("uri"),
+                        item.get("skill_type"),
+                        item.get("preferred_title"),
+                        is_leaf,
+                        is_functional_leaf,
+                    )
+                ],
+            )
+
+        elif spider.name == "esco_skills":
+            query = """
+                INSERT INTO skills (uri, preferred_title, alt_label, description, skill_code, 
+                broader_skill_uri, skill_type, reuse_level, scope_note, class_name,
+                is_leaf, is_functional_leaf)
+
+                VALUES %s
+                ON CONFLICT (uri)
+                DO UPDATE SET
+                    preferred_title = COALESCE(EXCLUDED.preferred_title, skills.preferred_title),
+                    skill_type      = COALESCE(EXCLUDED.skill_type, skills.skill_type),
+                    is_leaf = COALESCE(EXCLUDED.is_leaf, skills.is_leaf),
+                    is_functional_leaf = COALESCE(EXCLUDED.is_functional_leaf, skills.is_functional_leaf);
+            """
+            execute_values(self.cursor, query, [values])
 
     def insert_relationships(self, occupation_uri, skills, rel_type):
         query = """
