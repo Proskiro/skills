@@ -25,12 +25,24 @@
 {
   "version": "0.2.0",
   "configurations": [
+
+
+
     {
       "name": "Scrapy: crawl esco_occupations",
       "type": "python",
       "request": "launch",
       "module": "scrapy",
       "args": ["crawl", "esco_occupations"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Scrapy: crawl esco_skills",
+      "type": "python",
+      "request": "launch",
+      "module": "scrapy",
+      "args": ["crawl", "esco_skills"],
       "console": "integratedTerminal",
       "justMyCode": false
     }

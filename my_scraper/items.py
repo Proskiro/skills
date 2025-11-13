@@ -28,7 +28,22 @@ class OccupationHierarchyItem(scrapy.Item):
 
 
 class SkillItem(scrapy.Item):
+    preferred_title = scrapy.Field()
+    alt_label = scrapy.Field()
+    description = scrapy.Field()
+    skill_code = scrapy.Field()
     uri = scrapy.Field()
     skill_type = scrapy.Field()
-    preferred_title = scrapy.Field()
-    description = scrapy.Field()
+    scope_note = scrapy.Field()
+    reuse_level = scrapy.Field()
+    class_name = scrapy.Field()
+    broader_skill_uri = scrapy.Field()
+    narrower_concept = scrapy.Field()
+    narrower_skill = scrapy.Field()
+    is_leaf_node = scrapy.Field()
+
+
+class SkillHierarchyItem(scrapy.Item):
+    parent_uri = scrapy.Field()
+    child_uri = scrapy.Field()
+    relation_type = scrapy.Field()
