@@ -1,4 +1,5 @@
 import json
+import re
 from urllib.parse import urlencode
 
 import scrapy
@@ -57,6 +58,17 @@ class EscoSkillsSpider(scrapy.Spider):
         if hierarchy.get("hasReuseLevel"):
             item.add_value("reuse_level", hierarchy["hasReuseLevel"][0].get("code"))
 
+        # Skill type
+        skill_type_list = hierarchy.get("hasSkillType")
+        if skill_type_list and isinstance(skill_type_list, list):
+            skill = skill_type_list[0]
+            raw_type = skill.get("skillType")
+
+            if raw_type:
+                match = re.search(r"([^/]+)$", raw_type)
+                if match:
+                    item.add_value("skill_type", match.group(1))
+
         # Broader relationships
         broader_uris = []
         for key in ("broaderConcept", "broaderSkill", "broaderHierarchyConcept"):
@@ -76,6 +88,18 @@ class EscoSkillsSpider(scrapy.Spider):
 
         item.add_value("skill_code", skill_code)
         self.code_lookup[uri] = skill_code
+
+        has_narrower_skill = bool(hierarchy.get("narrowerSkill"))
+        has_narrower_concept = bool(hierarchy.get("narrowerConcept"))
+
+        # Structural leaf: bottom-most skill (no narrower skill/concept)
+        is_leaf = not has_narrower_skill and not has_narrower_concept
+
+        # Functional leaf: skill that has narrower sub-skills (so it’s a functional category)
+        is_functional_leaf = has_narrower_skill
+
+        item.add_value("is_leaf", is_leaf)
+        item.add_value("is_functional_leaf", is_functional_leaf)
 
         # Yield the skill
         yield item.load_item()

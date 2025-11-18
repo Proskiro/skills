@@ -50,6 +50,17 @@ class EscoOccupationsSpider(scrapy.Spider):
             "optional_skills", self._get_skills(response, hierarchy, "Optional")
         )
 
+        has_narrower_occupation = bool(hierarchy.get("narrowerOccupation"))
+        has_skills = bool(
+            hierarchy.get("hasEssentialSkill") or hierarchy.get("hasOptionalSkill")
+        )
+
+        is_leaf = not has_narrower_occupation and has_skills
+        is_functional_leaf = has_narrower_occupation and has_skills  # ✅ Functional if it actually carries skills
+
+        item.add_value("is_leaf", is_leaf)
+        item.add_value("is_functional_leaf", is_functional_leaf)
+
         yield item.load_item()
 
         narrower_links = []

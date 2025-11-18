@@ -18,7 +18,8 @@ class OccupationItem(scrapy.Item):
     narrower_occupation = scrapy.Field()
     essential_skills = scrapy.Field()  # array of skills items
     optional_skills = scrapy.Field()  # array of skills items
-    is_leaf_node = scrapy.Field()
+    is_leaf = scrapy.Field()
+    is_functional_leaf = scrapy.Field()
 
 
 class OccupationHierarchyItem(scrapy.Item):
@@ -40,7 +41,8 @@ class SkillItem(scrapy.Item):
     broader_skill_uri = scrapy.Field()
     narrower_concept = scrapy.Field()
     narrower_skill = scrapy.Field()
-    is_leaf_node = scrapy.Field()
+    is_leaf = scrapy.Field()
+    is_functional_leaf = scrapy.Field()
 
 
 class SkillHierarchyItem(scrapy.Item):

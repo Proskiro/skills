@@ -2,7 +2,12 @@ import psycopg2
 from psycopg2.extras import execute_values
 from scrapy.exceptions import NotConfigured
 
-from my_scraper.items import OccupationHierarchyItem, OccupationItem, SkillItem
+from my_scraper.items import (
+    OccupationHierarchyItem,
+    OccupationItem,
+    SkillHierarchyItem,
+    SkillItem,
+)
 
 
 class PostgresPipeline:
@@ -53,17 +58,16 @@ class PostgresPipeline:
             self.upsert_skill(item, spider)
 
         elif isinstance(item, OccupationHierarchyItem):
-            self.insert_hierarchy(item)
+            self.insert_hierarchy(item, spider)
+
+        elif isinstance(item, SkillHierarchyItem):
+            self.insert_hierarchy(item, spider)
 
         return item
 
     # ---------------- insert helpers ----------------
 
     def insert_occupation(self, item):
-        # Determine if it's a leaf node
-        is_leaf = not bool(item.get("narrowerConcept"))
-        is_functional_leaf = not bool(item.get("narrowerOccupation"))
-
         query = """
             INSERT INTO occupations (uri, preferred_title, alt_label, description, isco_code,
             broader_isco_group_uri, class_name, is_leaf, is_functional_leaf)
@@ -79,16 +83,13 @@ class PostgresPipeline:
                 item.get("isco_code"),
                 item.get("broader_isco_group_uri"),
                 item.get("class_name"),
-                is_leaf,
-                is_functional_leaf,
+                item.get("is_leaf"),
+                item.get("is_functional_leaf"),
             )
         ]
         execute_values(self.cursor, query, values)
 
     def upsert_skill(self, item, spider):
-        is_leaf = not bool(item.get("narrowerConcept"))
-        is_functional_leaf = not bool(item.get("narrowerSkill"))
-
         """
         Insert or enrich a skill record.
         - If called from the occupations spider: insert minimal info.
@@ -101,20 +102,20 @@ class PostgresPipeline:
             item.get("preferred_title"),
             item.get("alt_label"),
             item.get("description"),
-            item.get("skill_code"),
-            item.get("broader_skill_uri"),
             item.get("skill_type"),
+            item.get("skill_code"),
+            item.get("class_name"),
             item.get("reuse_level"),
             item.get("scope_note"),
-            item.get("class_name"),
-            is_leaf,
-            is_functional_leaf,
+            item.get("broader_skill_uri"),
+            item.get("is_leaf"),
+            item.get("is_functional_leaf"),
         )
 
         # Sequential logic: enrichment spider runs later, so we can safely fill in details
         if spider.name == "esco_occupations":
             query = """
-            INSERT INTO skills (uri, skill_type, preferred_title)
+            INSERT INTO skills (uri, skill_type, preferred_title, is_leaf, is_functional_leaf)
             VALUES %s
             ON CONFLICT (uri) DO NOTHING;
             """
@@ -126,27 +127,43 @@ class PostgresPipeline:
                         item.get("uri"),
                         item.get("skill_type"),
                         item.get("preferred_title"),
-                        is_leaf,
-                        is_functional_leaf,
+                        item.get("is_leaf"),
+                        item.get("is_functional_leaf"),
                     )
                 ],
             )
 
         elif spider.name == "esco_skills":
-            query = """
-                INSERT INTO skills (uri, preferred_title, alt_label, description, skill_code, 
-                broader_skill_uri, skill_type, reuse_level, scope_note, class_name,
-                is_leaf, is_functional_leaf)
-
+            try:
+                query = """
+                INSERT INTO skills (
+                    uri, preferred_title, alt_label, description, skill_type, 
+                    skill_code, class_name, reuse_level, scope_note, broader_skill_uri,
+                    is_leaf, is_functional_leaf
+                )
                 VALUES %s
                 ON CONFLICT (uri)
                 DO UPDATE SET
-                    preferred_title = COALESCE(EXCLUDED.preferred_title, skills.preferred_title),
-                    skill_type      = COALESCE(EXCLUDED.skill_type, skills.skill_type),
-                    is_leaf = COALESCE(EXCLUDED.is_leaf, skills.is_leaf),
-                    is_functional_leaf = COALESCE(EXCLUDED.is_functional_leaf, skills.is_functional_leaf);
-            """
-            execute_values(self.cursor, query, [values])
+                    preferred_title       = COALESCE(EXCLUDED.preferred_title, skills.preferred_title),
+                    alt_label             = COALESCE(EXCLUDED.alt_label, skills.alt_label),
+                    description           = COALESCE(EXCLUDED.description, skills.description),
+                    skill_type            = COALESCE(EXCLUDED.skill_type, skills.skill_type),
+                    skill_code            = COALESCE(EXCLUDED.skill_code, skills.skill_code),
+                    class_name            = COALESCE(EXCLUDED.class_name, skills.class_name),
+                    reuse_level           = COALESCE(EXCLUDED.reuse_level, skills.reuse_level),
+                    scope_note            = COALESCE(EXCLUDED.scope_note, skills.scope_note),
+                    broader_skill_uri     = COALESCE(EXCLUDED.broader_skill_uri, skills.broader_skill_uri),
+                    is_leaf               = EXCLUDED.is_leaf,
+                    is_functional_leaf    = EXCLUDED.is_functional_leaf;
+                """
+                execute_values(self.cursor, query, [values])
+            except Exception as e:
+                spider.logger.error("\n\n🚨 DB ERROR (REAL CAUSE BELOW) 🚨\n")
+                spider.logger.error(f"URI: {item.get('uri')}")
+                spider.logger.error(f"Values: {values}")
+                spider.logger.error(f"Error type: {type(e)}")
+                spider.logger.error(f"Error message: {e}\n")
+                self.conn.rollback()
 
     def insert_relationships(self, occupation_uri, skills, rel_type):
         query = """
@@ -160,13 +177,25 @@ class PostgresPipeline:
         if values:
             execute_values(self.cursor, query, values)
 
-    def insert_hierarchy(self, item):
-        query = """
-            INSERT INTO occupation_hierarchy (parent_uri, child_uri, relation_type)
-            VALUES %s
-            ON CONFLICT DO NOTHING;
-        """
-        values = [
-            (item.get("parent_uri"), item.get("child_uri"), item.get("relation_type"))
-        ]
+    def insert_hierarchy(self, item, spider):
+        parent = item.get("parent_uri")
+        child = item.get("child_uri")
+        relation = item.get("relation_type")
+
+        if spider.name == "esco_occupations":
+            query = """
+                INSERT INTO occupation_hierarchy (parent_uri, child_uri, relation_type)
+                VALUES %s
+                ON CONFLICT DO NOTHING;
+            """
+        elif spider.name == "esco_skills":
+            query = """
+                INSERT INTO skill_hierarchy (parent_uri, child_uri, relation_type)
+                VALUES %s
+                ON CONFLICT DO NOTHING;
+            """
+        else:
+            return item  # just in case
+
+        values = [(parent, child, relation)]
         execute_values(self.cursor, query, values)
