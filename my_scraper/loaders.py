@@ -1,7 +1,7 @@
 # my_scraper/loaders.py
 
 from itemloaders import ItemLoader
-from itemloaders.processors import Identity, TakeFirst, Join
+from itemloaders.processors import Identity, Join, TakeFirst
 
 from .items import OccupationItem, SkillItem
 
@@ -13,7 +13,7 @@ class BaseESCOLoader(ItemLoader):
     """
 
     default_input_processor = Identity()
-    default_output_processor = Identity()
+    default_output_processor = TakeFirst()
 
 
 class OccupationLoader(BaseESCOLoader):
@@ -31,6 +31,8 @@ class OccupationLoader(BaseESCOLoader):
     skill_code_out = TakeFirst()
     uri_out = TakeFirst()
     class_name_out = TakeFirst()
+    is_leaf_out = TakeFirst()
+    is_functional_leaf_out = TakeFirst()
 
     # Preserve structured data fields
     essential_skills_out = Identity()
@@ -57,7 +59,9 @@ class SkillLoader(BaseESCOLoader):
     class_name_out = TakeFirst()
     uri_out = TakeFirst()
     scope_note_out = TakeFirst()
+    is_leaf_out = TakeFirst()
+    is_functional_leaf_out = TakeFirst()
 
     # Preserve structured data fields
-    reuse_level_out = Identity()
-    broader_skill_uri_out = Identity()
+    reuse_level_out = TakeFirst()
+    broader_skill_uri_out = Join(", ")
