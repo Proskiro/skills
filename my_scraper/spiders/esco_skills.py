@@ -15,15 +15,18 @@ class EscoSkillsSpider(scrapy.Spider):
     allowed_domains = ["ec.europa.eu"]
     start_urls = [
         # Starting from the sectoral skill root
-        "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/S1.1&language=en",
+        "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/L&language=en",
         # Uncomment others when you want to crawl more domains
         # "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/K&language=en",
         # "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/L&language=en",
-        # "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/T&language=en",
     ]
 
     visited_uris = set()
     code_lookup = {}  # store parent_uri -> generated code
+
+    def start_requests(self):
+        for url in self.start_urls:
+            yield scrapy.Request(url, meta={"root_url": url}, callback=self.parse)
 
     def parse(self, response):
         data = json.loads(response.body)
@@ -59,15 +62,7 @@ class EscoSkillsSpider(scrapy.Spider):
             item.add_value("reuse_level", hierarchy["hasReuseLevel"][0].get("code"))
 
         # Skill type
-        skill_type_list = hierarchy.get("hasSkillType")
-        if skill_type_list and isinstance(skill_type_list, list):
-            skill = skill_type_list[0]
-            raw_type = skill.get("skillType")
-
-            if raw_type:
-                match = re.search(r"([^/]+)$", raw_type)
-                if match:
-                    item.add_value("skill_type", match.group(1))
+        item.add_value("skill_type", self._get_skill_type(response, item, hierarchy))
 
         # Broader relationships
         broader_uris = []
@@ -124,4 +119,48 @@ class EscoSkillsSpider(scrapy.Spider):
             next_url = "https://ec.europa.eu/esco/api/resource/skill?" + urlencode(
                 {"uri": child_uri, "language": "en"}
             )
-            yield scrapy.Request(url=next_url, callback=self.parse)
+            yield scrapy.Request(
+                url=next_url,
+                meta={"root_url": response.meta.get("root_url")},
+                callback=self.parse,
+            )
+
+    def _get_skill_type(self, response, item, hierarchy):
+        skill_type = None
+        desc = item.get_output_value("description")
+        if not isinstance(desc, str):
+            desc = ""
+        else:
+            desc = (
+                desc.replace("\u00a0", " ")  # convert non-breaking spaces
+                .replace(" ", " ")  # sometimes NBSP is this literal
+                .strip()
+                .rstrip(".")  # remove trailing periods
+            )
+
+        uri = response.meta.get("root_url")
+        is_language_tree = uri.endswith("skill/L&language=en")
+
+        # 1. SPECIAL RULE FOR LANGUAGE ROOT DESCRIPTION
+        # "The {language} language" → skill_type = "language"
+        if is_language_tree and re.fullmatch(r"The [A-Za-z-]+ language", desc):
+            return "language"
+
+        # 2. ANY OTHER SKILL UNDER L-TREE → languageSkill
+        elif is_language_tree:
+            return "language skill"
+
+        # 3. NON-L nodes: first use ESCO official type
+        elif hierarchy.get("hasSkillType"):
+            return hierarchy["hasSkillType"][0].get("title")
+
+        # 4. FALLBACK: infer from root of the URI
+        if skill_type is None:
+            if uri.endswith("http://data.europa.eu/esco/skill/S&language=en"):
+                return "skill"
+            elif uri.endswith("http://data.europa.eu/esco/skill/K&language=en"):
+                return "knowledge"
+            else:
+                return "transversal skill"
+
+        return skill_type
