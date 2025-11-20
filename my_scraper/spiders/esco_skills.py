@@ -15,7 +15,7 @@ class EscoSkillsSpider(scrapy.Spider):
     allowed_domains = ["ec.europa.eu"]
     start_urls = [
         # Starting from the sectoral skill root
-        "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/L&language=en",
+        "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/S3&language=en",
         # Uncomment others when you want to crawl more domains
         # "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/K&language=en",
         # "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/L&language=en",
@@ -73,13 +73,20 @@ class EscoSkillsSpider(scrapy.Spider):
                 )
 
         if broader_uris:
-            item.add_value("broader_skill_uri", broader_uris)
+            # Reorder: coded parents first, UUID parents last
+            coded = [u for u in broader_uris if extract_root_code(u)]
+            uuid = [u for u in broader_uris if not extract_root_code(u)]
+            ordered_broader_uris = coded + uuid
+
+            item.add_value("broader_skill_uri", ordered_broader_uris)
+        else:
+            ordered_broader_uris = []
 
         # Generate the new skill code
         if root_code := extract_root_code(uri):
             skill_code = root_code
         else:
-            skill_code = generate_skill_code(uri, broader_uris, self.code_lookup)
+            skill_code = generate_skill_code(uri, ordered_broader_uris, self.code_lookup)
 
         item.add_value("skill_code", skill_code)
         self.code_lookup[uri] = skill_code
