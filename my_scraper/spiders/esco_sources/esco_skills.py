@@ -6,8 +6,8 @@ import scrapy
 
 from my_tools import extract_root_code, generate_skill_code
 
-from ..items import SkillHierarchyItem
-from ..loaders import SkillLoader
+from ...items import SkillHierarchyItem
+from ...loaders import SkillLoader
 
 
 class EscoSkillsSpider(scrapy.Spider):

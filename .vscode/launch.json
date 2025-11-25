@@ -28,6 +28,7 @@
 
 
 
+
     {
       "name": "Scrapy: crawl esco_occupations",
       "type": "python",
@@ -45,6 +46,15 @@
       "args": ["crawl", "esco_skills"],
       "console": "integratedTerminal",
       "justMyCode": false
-    }
+    },
+    {
+      "name": "Scrapy: crawl google_books",
+      "type": "python",
+      "request": "launch",
+      "module": "scrapy",
+      "args": ["crawl", "google_books"],
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
   ]
 }
