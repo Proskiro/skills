@@ -4,24 +4,24 @@ from urllib.parse import urlencode
 
 import scrapy
 
-from ..items import OccupationHierarchyItem
-from ..loaders import OccupationLoader, SkillLoader
+from ...items import OccupationHierarchyItem
+from ...loaders import OccupationLoader, SkillLoader
 
 
 class EscoOccupationsSpider(scrapy.Spider):
     name = "esco_occupations"
     allowed_domains = ["ec.europa.eu"]
     start_urls = [
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C0&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C0&language=en",
         "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C1&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C2&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C3&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C4&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C5&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C6&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C7&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C8&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C9&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C2&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C3&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C4&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C5&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C6&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C7&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C8&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C9&language=en",
     ]
     visited_uris = set()
 
@@ -31,7 +31,7 @@ class EscoOccupationsSpider(scrapy.Spider):
         item.add_value("preferred_title", data.get("title"))
         item.add_value("alt_label", data.get("preferredLabel").get("en"))
         item.add_value("description", data.get("description").get("en").get("literal"))
-        item.add_value("isco_code", data.get("code"))
+        item.add_value("isco_code", f"C{data.get('code')}")
         item.add_value("uri", data.get("uri"))
         item.add_value("class_name", data.get("className"))
         if data.get("uri") in self.visited_uris:
