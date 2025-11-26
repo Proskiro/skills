@@ -1,4 +1,9 @@
+import os
+
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class GoogleBooksClient:
@@ -6,14 +11,11 @@ class GoogleBooksClient:
 
     BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
-    api_key = "AIzaSyDVTOQJMEwb3JqgKSNtvDDMQ67hcRiB5fk"
-
     def search(self, query, max_results=5):
         """Search for books using Google Books API."""
         params = {"q": query, "maxResults": max_results}
 
-        if self.api_key:
-            params["key"] = self.api_key
+        params["key"] = os.getenv("GOOGLE_BOOKS_API_KEY")
 
         response = requests.get(self.BASE_URL, params=params)
         response.raise_for_status()
