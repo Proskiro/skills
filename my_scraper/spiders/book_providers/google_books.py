@@ -58,6 +58,7 @@ class GoogleBooksClient:
                     "publisher": volume_info.get("publisher"),
                     "published_year": int(year) if year else None,
                     "average_rating": volume_info.get("averageRating"),
+                    "ratings_count": volume_info.get("ratingsCount"),
                     "metadata": item,
                 }
             )

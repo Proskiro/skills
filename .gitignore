@@ -11,10 +11,15 @@ __pycache__/
 # --- Virtual Environments ---
 .venv/
 venv/
+*.venv
+
+
+# Environment variables
 env/
 ENV/
+.env
 *.env
-*.venv
+.env.*
 
 # --- Package / Build ---
 build/

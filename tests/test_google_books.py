@@ -5,23 +5,17 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import psycopg2
 
-from my_scraper.settings import (
-    POSTGRES_DB,
-    POSTGRES_HOST,
-    POSTGRES_PASSWORD,
-    POSTGRES_USER,
-)
+from db.db_books import save_books
 from my_scraper.spiders.book_providers.google_books import GoogleBooksClient
-from my_tools.db_books import save_books
 
 
 def run_test():
     # Connect to DB
     conn = psycopg2.connect(
-        dbname=POSTGRES_DB,
-        user=POSTGRES_USER,
-        password=POSTGRES_PASSWORD,
-        host=POSTGRES_HOST,
+        dbname=os.getenv("POSTGRES_DB"),
+        user=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PASSWORD"),
+        host=os.getenv("POSTGRES_HOST"),
         port=5432,
     )
 
@@ -30,7 +24,7 @@ def run_test():
 
     print(f"Fetched {len(results)} books")
     for b in results[:3]:
-        print(b["title"], b["authors"])
+        print(b["title"], b["subtitle"], b["authors"], b["average_rating"])
 
     save_books(conn, results)
 
