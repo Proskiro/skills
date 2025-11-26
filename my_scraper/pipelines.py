@@ -1,6 +1,7 @@
 import psycopg2
 from psycopg2.extras import execute_values
 from scrapy.exceptions import NotConfigured
+import os
 
 from my_scraper.items import (
     OccupationHierarchyItem,
@@ -19,10 +20,11 @@ class PostgresPipeline:
 
     @classmethod
     def from_crawler(cls, crawler):
-        pg_host = crawler.settings.get("POSTGRES_HOST")
-        pg_db = crawler.settings.get("POSTGRES_DB")
-        pg_user = crawler.settings.get("POSTGRES_USER")
-        pg_password = crawler.settings.get("POSTGRES_PASSWORD")
+        pg_host = os.getenv("POSTGRES_HOST")
+        pg_db = os.getenv("POSTGRES_DB")
+        pg_user = os.getenv("POSTGRES_USER")
+        pg_password = os.getenv("POSTGRES_PASSWORD")
+        # If any required variable is missing
         if not all([pg_host, pg_db, pg_user, pg_password]):
             raise NotConfigured("Postgres credentials missing")
         return cls(pg_host, pg_db, pg_user, pg_password)
