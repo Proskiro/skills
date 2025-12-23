@@ -48,13 +48,12 @@
       "justMyCode": false
     },
     {
-      "name": "Scrapy: crawl google_books",
+      "name": "Debug search_books_for_skills",
       "type": "python",
       "request": "launch",
-      "module": "scrapy",
-      "args": ["crawl", "google_books"],
+      "module": "my_services.search_books_for_skills",
       "console": "integratedTerminal",
-      "justMyCode": false
+      "justMyCode": true
     },
   ]
 }
