@@ -15,9 +15,9 @@ class EscoSkillsSpider(scrapy.Spider):
     allowed_domains = ["ec.europa.eu"]
     start_urls = [
         # Starting from the sectoral skill root
-        # "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/S&language=en",
+        "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/S3.0.0&language=en",
         # "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/K&language=en",
-        "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/L&language=en",
+        # "https://ec.europa.eu/esco/api/resource/skill?uri=http://data.europa.eu/esco/skill/L&language=en",
     ]
 
     visited_uris = set()
@@ -44,11 +44,11 @@ class EscoSkillsSpider(scrapy.Spider):
 
         # Description
         if data.get("description") and data["description"].get("en"):
-            item.add_value("description", data["description"]["en"].get("literal"))
+            item.add_value("description", data["description"].get("en").get("literal"))
 
         # Scope note (optional)
         if data.get("scope_note") and data["scope_note"].get("en"):
-            item.add_value("scope_note", data["scope_note"]["en"].get("literal"))
+            item.add_value("scope_note", data["scope_note"].get("en").get("literal"))
 
         # URI + class
         item.add_value("uri", uri)

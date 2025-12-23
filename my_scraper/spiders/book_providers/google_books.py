@@ -1,4 +1,5 @@
 import os
+import re
 
 import requests
 from dotenv import load_dotenv
@@ -11,17 +12,37 @@ class GoogleBooksClient:
 
     BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
-    def search(self, query, max_results=5):
+    def search(self, query, max_results=40):
         """Search for books using Google Books API."""
-        params = {"q": query, "maxResults": max_results}
+        results = []
+        start_index = 0
 
-        params["key"] = os.getenv("GOOGLE_BOOKS_API_KEY")
+        while len(results) < max_results:
+            params = {
+                "q": query,
+                "maxResults": min(40, max_results - len(results)),
+                "startIndex": start_index,
+            }
 
-        response = requests.get(self.BASE_URL, params=params)
-        response.raise_for_status()
+            params["key"] = os.getenv("GOOGLE_BOOKS_API_KEY")
 
-        data = response.json()
-        return self._parse_results(data)
+            response = requests.get(self.BASE_URL, params=params)
+            response.raise_for_status()
+
+            data = response.json()
+            items = data.get("items", [])
+
+            if not items:
+                break
+
+            results.extend(self._parse_results(data))
+            start_index += len(items)
+
+            # Google hard stop safety
+            if start_index >= data.get("totalItems", 0):
+                break
+
+        return results
 
     def _parse_results(self, data):
         """Convert API JSON into simple Python dicts."""
@@ -42,8 +63,11 @@ class GoogleBooksClient:
             # Extract publication year
             raw_date = volume_info.get("publishedDate")
             year = None
+
             if raw_date:
-                year = raw_date.split("-")[0]
+                match = re.search(r"\b(1[5-9]\d{2}|20\d{2})\b", raw_date)
+                if match:
+                    year = int(match.group(0))
 
             results.append(
                 {
@@ -58,7 +82,7 @@ class GoogleBooksClient:
                     "subjects": volume_info.get("categories"),
                     "language_code": volume_info.get("language"),
                     "publisher": volume_info.get("publisher"),
-                    "published_year": int(year) if year else None,
+                    "published_year": year,
                     "average_rating": volume_info.get("averageRating"),
                     "ratings_count": volume_info.get("ratingsCount"),
                     "metadata": item,
