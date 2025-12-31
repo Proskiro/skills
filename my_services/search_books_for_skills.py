@@ -8,14 +8,18 @@ from typing import Dict, List, Tuple
 from my_scraper.spiders.book_providers.google_books import (
     GoogleBooksClient,  # ← use your existing module
 )
+from my_services.book_persistence import (
+    link_book_to_skill,
+    upsert_book,
+)
 from my_tools.db import get_db_connection
 
 
 def fetch_skills(limit: int = 50) -> List[Dict]:
     sql = """
-        SELECT skill_code, preferred_title, description, books_last_fetched_at
+        SELECT uri, skill_code, preferred_title, description, books_last_fetched_at
         FROM skills
-        WHERE skill_type ILIKE 'knowledge' AND description is not NULL
+        WHERE skill_type ILIKE 'knowledge' AND description is not NULL AND is_leaf = TRUE
         ORDER BY skill_code
         LIMIT %s;
     """
@@ -29,10 +33,11 @@ def fetch_skills(limit: int = 50) -> List[Dict]:
 
     return [
         {
-            "skill_code": r[0],
-            "title": r[1],
-            "description": r[2],
-            "books_last_fetched_at": r[3],
+            "uri": r[0],
+            "skill_code": r[1],
+            "title": r[2],
+            "description": r[3],
+            "books_last_fetched_at": r[4],
         }
         for r in rows
     ]
@@ -164,23 +169,32 @@ def run_search(skill_limit=50, book_limit=40):
 
         results.append(
             {
-                "skill_code": skill["skill_code"],
+                "skill_uri": skill["uri"],
                 "skill": skill["title"],
                 "books": top_books,
             }
         )
 
+        for rank, book in enumerate(top_books, start=1):
+            book_id = upsert_book(conn, book)
+            link_book_to_skill(
+                conn,
+                skill_uri=skill["uri"],
+                book_id=book_id,
+                rank=rank,
+            )
+
         # 4. Update refresh timestamp
-        # with conn.cursor() as cur:
-        #     cur.execute(
-        #         """
-        #         UPDATE skills
-        #         SET books_last_fetched_at = NOW()
-        #         WHERE skill_code = %s;
-        #         """,
-        #         (skill["skill_code"],),
-        #     )
-        # conn.commit()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE skills
+                SET books_last_fetched_at = NOW()
+                WHERE uri = %s;
+                """,
+                (skill["uri"],),
+            )
+        conn.commit()
 
     conn.close()
     return results
