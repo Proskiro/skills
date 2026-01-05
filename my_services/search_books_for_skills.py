@@ -2,6 +2,8 @@
 Service: Get skills from DB and fetch book results for each.
 """
 
+import random
+import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
 
@@ -138,7 +140,7 @@ def should_refresh_books(last_fetched_at) -> bool:
     return last_fetched_at < datetime.utcnow() - timedelta(days=30)
 
 
-def run_search(skill_limit=50, book_limit=40):
+def run_search(skill_limit=1000, book_limit=40):
     client = GoogleBooksClient()
     skills = fetch_skills(limit=skill_limit)
     results = []
@@ -149,6 +151,11 @@ def run_search(skill_limit=50, book_limit=40):
         print("\n" + "=" * 60)
         print(f"[{i}/{len(skills)}] Skill: {skill['title']}")
         print("=" * 60)
+
+        # Skip if recently fetched
+        if not should_refresh_books(skill["books_last_fetched_at"]):
+            print("Skipping (books fetched recently)")
+            continue
 
         books = search_books_for_skill(skill, client, book_limit)
         print(f"Google returned {len(books)} books")
@@ -196,9 +203,12 @@ def run_search(skill_limit=50, book_limit=40):
             )
         conn.commit()
 
+        # Gentle global throttle to avoid 429s (adds small jitter)
+        time.sleep(0.15 + random.random() * 0.20)  # ~0.15–0.35s
+
     conn.close()
     return results
 
 
 if __name__ == "__main__":
-    results = run_search(skill_limit=10, book_limit=40)
+    results = run_search(skill_limit=1000, book_limit=40)

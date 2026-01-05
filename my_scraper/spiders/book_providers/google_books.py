@@ -1,5 +1,7 @@
 import os
+import random
 import re
+import time
 
 import requests
 from dotenv import load_dotenv
@@ -11,6 +13,44 @@ class GoogleBooksClient:
     """Google Books API client using requests."""
 
     BASE_URL = "https://www.googleapis.com/books/v1/volumes"
+
+    def _get_with_backoff(self, params, max_attempts=8):
+        """
+        Make a GET request with retry/backoff for 429 + 5xx.
+        Respects Retry-After header when present.
+        """
+        last_response = None
+
+        for attempt in range(1, max_attempts + 1):
+            last_response = requests.get(self.BASE_URL, params=params, timeout=20)
+
+            # Success
+            if last_response.status_code == 200:
+                return last_response
+
+            # Retry on rate limit / temporary server errors
+            if last_response.status_code in (429, 500, 502, 503, 504):
+                retry_after = last_response.headers.get("Retry-After")
+
+                if retry_after:
+                    try:
+                        sleep_s = float(retry_after)
+                    except ValueError:
+                        sleep_s = 1.0
+                else:
+                    # 1, 2, 4, 8... seconds (capped) + jitter
+                    base = min(60, 2 ** (attempt - 1))
+                    sleep_s = base + random.uniform(0, 0.5 * base)
+
+                time.sleep(max(1.0, sleep_s))
+                continue
+
+            # Other errors: fail immediately
+            last_response.raise_for_status()
+
+        # Exhausted attempts
+        last_response.raise_for_status()
+        return last_response  # not reached
 
     def search(self, query, max_results=40):
         """Search for books using Google Books API."""
