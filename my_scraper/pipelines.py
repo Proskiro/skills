@@ -48,7 +48,7 @@ class PostgresPipeline:
             for skill_list_name in ("essential_skills", "optional_skills"):
                 for skill in item.get(skill_list_name, []):
                     self.upsert_skill(skill, spider)
-            self.insert_occupation(item)
+            self.upsert_occupation(item)
             self.insert_relationships(
                 item.get("uri"), item.get("essential_skills", []), "essential"
             )
@@ -69,13 +69,35 @@ class PostgresPipeline:
 
     # ---------------- insert helpers ----------------
 
-    def insert_occupation(self, item):
+    def upsert_occupation(self, item):
         query = """
-            INSERT INTO occupations (uri, preferred_title, alt_label, description, isco_code,
-            broader_isco_group_uri, class_name, is_leaf, is_functional_leaf)
+            INSERT INTO occupations (
+                uri,
+                preferred_title,
+                alt_label,
+                description,
+                isco_code,
+                broader_isco_group_uri,
+                class_name,
+                is_leaf,
+                is_functional_leaf,
+                created_at,
+                updated_at
+            )
             VALUES %s
-            ON CONFLICT (uri) DO NOTHING;
+            ON CONFLICT (uri)
+            DO UPDATE SET
+                preferred_title          = EXCLUDED.preferred_title,
+                alt_label                = EXCLUDED.alt_label,
+                description              = EXCLUDED.description,
+                isco_code                = EXCLUDED.isco_code,
+                broader_isco_group_uri   = EXCLUDED.broader_isco_group_uri,
+                class_name               = EXCLUDED.class_name,
+                is_leaf                  = EXCLUDED.is_leaf,
+                is_functional_leaf       = EXCLUDED.is_functional_leaf,
+                updated_at               = now();
         """
+
         values = [
             (
                 item.get("uri"),
@@ -87,9 +109,13 @@ class PostgresPipeline:
                 item.get("class_name"),
                 item.get("is_leaf"),
                 item.get("is_functional_leaf"),
+                None,  # created_at → DB default
+                None,  # updated_at → handled by now()
             )
         ]
+
         execute_values(self.cursor, query, values)
+
 
     def upsert_skill(self, item, spider):
         """
