@@ -4,40 +4,77 @@ from urllib.parse import urlencode
 
 import scrapy
 
-from ...items import OccupationHierarchyItem
-from ...loaders import OccupationLoader, SkillLoader
+from my_scraper.items import OccupationHierarchyItem
+from my_scraper.loaders import OccupationLoader, SkillLoader
+from my_tools.db import occupation_is_fresh
 
 
 class EscoOccupationsSpider(scrapy.Spider):
     name = "esco_occupations"
     allowed_domains = ["ec.europa.eu"]
     start_urls = [
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C0&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C1&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C2&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C0&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C1&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C2&language=en",
         "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C3&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C4&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C5&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C6&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C7&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C8&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C9&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C4&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C5&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C6&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C7&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C8&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C9&language=en",
     ]
     visited_uris = set()
 
     def parse(self, response):
         data = json.loads(response.body)
+        uri = data.get("uri")
+        if not uri:
+            return
+        
+        if uri in self.visited_uris:
+            return
+        self.visited_uris.add(data.get("uri"))
+
+        hierarchy = data.get("_links")
+
+        narrower_links = []
+        if hierarchy.get("narrowerConcept"):
+            narrower_links.extend(hierarchy.get("narrowerConcept"))
+        if hierarchy.get("narrowerOccupation"):
+            narrower_links.extend(hierarchy.get("narrowerOccupation"))
+
+        # For all narrower (children)
+        for link in narrower_links:
+            child_uri = link.get("uri")
+            if not child_uri:
+                continue
+
+            yield OccupationHierarchyItem(
+                parent_uri=uri,
+                child_uri=child_uri,
+                relation_type="narrower",
+            )
+
+            next_url = "https://ec.europa.eu/esco/api/resource/occupation?" + urlencode(
+                {"uri": child_uri, "language": "en"}
+            )
+            yield scrapy.Request(url=next_url, callback=self.parse)
+
+            # ⏱ freshness check AFTER traversal
+        if occupation_is_fresh(data.get("uri"), days=30):
+            self.logger.debug("Skipping fresh occupation: %s", data.get("uri"))
+            return
+        
         item = OccupationLoader(response=response)
         item.add_value("preferred_title", data.get("title"))
-        item.add_value("alt_label", data.get("preferredLabel").get("en"))
-        item.add_value("description", data.get("description").get("en").get("literal"))
+        item.add_value("alt_label", data.get("preferredLabel", {}).get("en"))
+        item.add_value(
+            "description", data.get("description", {}).get("en", {}).get("literal")
+        )
         item.add_value("isco_code", f"C{data.get('code')}")
         item.add_value("uri", data.get("uri"))
         item.add_value("class_name", data.get("className"))
-        if data.get("uri") in self.visited_uris:
-            return
-        self.visited_uris.add(data.get("uri"))
-        hierarchy = data.get("_links")
 
         if hierarchy.get("broaderIscoGroup"):
             uris = [g.get("uri") for g in hierarchy["broaderIscoGroup"] if g.get("uri")]
@@ -56,35 +93,14 @@ class EscoOccupationsSpider(scrapy.Spider):
         )
 
         is_leaf = not has_narrower_occupation and has_skills
-        is_functional_leaf = has_narrower_occupation and has_skills  # ✅ Functional if it actually carries skills
+        is_functional_leaf = (
+            has_narrower_occupation and has_skills
+        )  # ✅ Functional if it actually carries skills
 
         item.add_value("is_leaf", is_leaf)
         item.add_value("is_functional_leaf", is_functional_leaf)
 
         yield item.load_item()
-
-        narrower_links = []
-        if hierarchy.get("narrowerConcept"):
-            narrower_links.extend(hierarchy.get("narrowerConcept"))
-        if hierarchy.get("narrowerOccupation"):
-            narrower_links.extend(hierarchy.get("narrowerOccupation"))
-
-        # For all narrower (children)
-        for link in narrower_links:
-            child_uri = link.get("uri")
-            if not child_uri:
-                continue
-
-            yield OccupationHierarchyItem(
-                parent_uri=item.get_output_value("uri"),
-                child_uri=child_uri,
-                relation_type="narrower",
-            )
-
-            next_url = "https://ec.europa.eu/esco/api/resource/occupation?" + urlencode(
-                {"uri": child_uri, "language": "en"}
-            )
-            yield scrapy.Request(url=next_url, callback=self.parse)
 
     def _get_skills(self, response, hierarchy, flag):
         skills = []

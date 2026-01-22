@@ -19,3 +19,20 @@ def get_db_connection():
     )
     conn.autocommit = False
     return conn
+
+
+def occupation_is_fresh(uri: str, days: int = 30) -> bool:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = """
+        SELECT 1
+        FROM occupations
+        WHERE uri = %s
+          AND updated_at >= now() - interval %s
+        LIMIT 1;
+    """
+    cursor.execute(query, (uri, f"{days} days"))
+    is_fresh = cursor.fetchone() is not None
+    cursor.close()
+    conn.close()
+    return is_fresh
