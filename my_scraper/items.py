@@ -13,6 +13,7 @@ class OccupationItem(scrapy.Item):
     isco_code = scrapy.Field()
     uri = scrapy.Field()
     class_name = scrapy.Field()  # used for link to api
+    status = scrapy.Field()
     broader_isco_group_uri = scrapy.Field()
     narrower_concept = scrapy.Field()
     narrower_occupation = scrapy.Field()
