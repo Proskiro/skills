@@ -1,7 +1,8 @@
+import os
+
 import psycopg2
 from psycopg2.extras import execute_values
 from scrapy.exceptions import NotConfigured
-import os
 
 from my_scraper.items import (
     OccupationHierarchyItem,
@@ -79,6 +80,7 @@ class PostgresPipeline:
                 isco_code,
                 broader_isco_group_uri,
                 class_name,
+                status,
                 is_leaf,
                 is_functional_leaf,
                 created_at,
@@ -93,6 +95,7 @@ class PostgresPipeline:
                 isco_code                = EXCLUDED.isco_code,
                 broader_isco_group_uri   = EXCLUDED.broader_isco_group_uri,
                 class_name               = EXCLUDED.class_name,
+                status                   = EXCLUDED.status,
                 is_leaf                  = EXCLUDED.is_leaf,
                 is_functional_leaf       = EXCLUDED.is_functional_leaf,
                 updated_at               = now();
@@ -107,6 +110,7 @@ class PostgresPipeline:
                 item.get("isco_code"),
                 item.get("broader_isco_group_uri"),
                 item.get("class_name"),
+                item.get("status"),
                 item.get("is_leaf"),
                 item.get("is_functional_leaf"),
                 None,  # created_at → DB default
@@ -115,7 +119,6 @@ class PostgresPipeline:
         ]
 
         execute_values(self.cursor, query, values)
-
 
     def upsert_skill(self, item, spider):
         """

@@ -1,9 +1,29 @@
 # my_scraper/loaders.py
 
+import re
+
 from itemloaders import ItemLoader
-from itemloaders.processors import Identity, Join, TakeFirst
+from itemloaders.processors import Identity, Join, MapCompose, TakeFirst
 
 from .items import OccupationItem, SkillItem
+
+
+def remove_white_space(s):
+    if not isinstance(s, str):
+        return s
+    return re.sub(r"\s+", " ", s)
+
+
+def string_strip(s):
+    if not isinstance(s, str):
+        return s
+    return s.strip()
+
+
+def filter_empty(s):
+    if isinstance(s, str):
+        return s or None
+    return s
 
 
 class BaseESCOLoader(ItemLoader):
@@ -12,7 +32,7 @@ class BaseESCOLoader(ItemLoader):
     Keeps JSON structure intact by default.
     """
 
-    default_input_processor = Identity()
+    default_input_processor = MapCompose(remove_white_space, string_strip, filter_empty)
     default_output_processor = TakeFirst()
 
 
@@ -31,6 +51,7 @@ class OccupationLoader(BaseESCOLoader):
     skill_code_out = TakeFirst()
     uri_out = TakeFirst()
     class_name_out = TakeFirst()
+    status_out = TakeFirst()
     is_leaf_out = TakeFirst()
     is_functional_leaf_out = TakeFirst()
 

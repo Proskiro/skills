@@ -14,9 +14,9 @@ class EscoOccupationsSpider(scrapy.Spider):
     allowed_domains = ["ec.europa.eu"]
     start_urls = [
         # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C0&language=en",
-        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C1&language=en",
+        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C1&language=en",
         # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C2&language=en",
-        "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C3&language=en",
+        # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C3&language=en",
         # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C4&language=en",
         # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C5&language=en",
         # "https://ec.europa.eu/esco/api/resource/occupation?uri=http://data.europa.eu/esco/isco/C6&language=en",
@@ -31,7 +31,7 @@ class EscoOccupationsSpider(scrapy.Spider):
         uri = data.get("uri")
         if not uri:
             return
-        
+
         if uri in self.visited_uris:
             return
         self.visited_uris.add(data.get("uri"))
@@ -65,16 +65,17 @@ class EscoOccupationsSpider(scrapy.Spider):
         if occupation_is_fresh(data.get("uri"), days=30):
             self.logger.debug("Skipping fresh occupation: %s", data.get("uri"))
             return
-        
+
         item = OccupationLoader(response=response)
         item.add_value("preferred_title", data.get("title"))
         item.add_value("alt_label", data.get("preferredLabel", {}).get("en"))
         item.add_value(
-            "description", data.get("description", {}).get("en", {}).get("literal")
+            "description", self.get_english_literal(data.get("description", {}))
         )
         item.add_value("isco_code", f"C{data.get('code')}")
         item.add_value("uri", data.get("uri"))
         item.add_value("class_name", data.get("className"))
+        item.add_value("status", data.get("status"))
 
         if hierarchy.get("broaderIscoGroup"):
             uris = [g.get("uri") for g in hierarchy["broaderIscoGroup"] if g.get("uri")]
@@ -113,3 +114,19 @@ class EscoOccupationsSpider(scrapy.Spider):
                 s_loader.add_value("preferred_title", skill.get("title"))
                 skills.append(s_loader.load_item())
         return skills
+
+    def get_english_literal(self, description):
+        if not description:
+            return None
+
+        # Prefer exact "en" if it ever exists
+        if "en" in description:
+            return description["en"].get("literal")
+
+        # Fallback to any "en-*"
+        for lang, value in description.items():
+            if lang.startswith("en-") and isinstance(value, dict):
+                return value.get("literal")
+
+        return None
+
