@@ -75,6 +75,36 @@ def is_fiction(book: Dict) -> bool:
     return False
 
 
+# Spam title detection - unrelated topic combinations
+SPAM_INDICATORS = {
+    # Food/cooking terms that shouldn't appear in professional books
+    "cheese", "artisan", "artisanal", "recipe", "recipes", "cookbook", "cooking",
+    "baking", "wine", "beer", "cocktail", "cuisine", "chef", "gourmet", "foodie",
+    "dessert", "pastry", "sourdough", "ferment", "pickle", "jam", "preserve",
+    # Hobby/craft terms
+    "knitting", "crochet", "quilting", "scrapbook", "origami", "pottery",
+    "gardening", "garden", "landscaping", "houseplant",
+    # Pet/animal care
+    "dog training", "puppy", "kitten", "aquarium", "terrarium",
+    # Travel/lifestyle
+    "travel guide", "vacation", "resort", "spa", "wellness retreat",
+    # Fiction/entertainment sneaking in
+    "vampire", "zombie", "werewolf", "dragon", "wizard", "witch",
+}
+
+
+def is_spam_title(title: str) -> bool:
+    """
+    Detect spam titles that combine unrelated topics.
+    These are often SEO-stuffed titles or mislabeled books.
+    """
+    title_lower = title.lower()
+    for indicator in SPAM_INDICATORS:
+        if indicator in title_lower:
+            return True
+    return False
+
+
 def fetch_skills(limit: int = 50) -> List[Dict]:
     sql = """
         SELECT uri, skill_code, preferred_title, description, books_last_fetched_at
@@ -158,6 +188,11 @@ def filter_books(
 
         # Exclude fiction if requested
         if exclude_fiction and is_fiction(b):
+            continue
+
+        # Spam title detection - catches SEO-stuffed titles with unrelated topics
+        if is_spam_title(b.get("title", "")):
+            print(f"    [SPAM] {b['title'][:50]}")
             continue
 
         # Get the appropriate similarity function based on SEMANTIC_MODEL setting
