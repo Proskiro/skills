@@ -412,6 +412,7 @@ class OpenLibraryClient:
                     "cover_id": doc.get("cover_i"),
                     "edition_count": doc.get("edition_count"),
                     "popularity_score": popularity_score,
+                    "semantic_relevance_score": None,  # To be filled later if needed
                     "metadata": doc,
                 }
             )

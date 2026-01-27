@@ -84,6 +84,10 @@ class BookRanker:
         # Source-specific scoring
         if self.source == "open_library":
             s += self._score_open_library(book)
+        
+        # Semantic relevance score (if present)
+        relevance = book.get("semantic_relevance_score", 0) or 0
+        s += relevance * 50  # Weight for semantic relevance
 
         return s
 

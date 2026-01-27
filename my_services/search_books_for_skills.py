@@ -17,6 +17,25 @@ from my_services.book_persistence import (
 from my_services.book_ranking import rank_books
 from my_tools.db import get_db_connection
 
+# Semantic model selection - set via CLI argument
+# Options: "transformer" (local, fast) or "cohere" (API, better quality)
+_config = {"semantic_model": "transformer"}  # default
+
+
+def set_semantic_model(model: str):
+    """Set the semantic model to use for similarity calculations."""
+    _config["semantic_model"] = model
+
+
+def get_similarity_function():
+    """Return the appropriate similarity function based on semantic model config."""
+    if _config["semantic_model"] == "cohere":
+        from my_services.semantic_filtering_cohere import compute_similarity
+    else:
+        from my_services.semantic_filtering_transformer import compute_similarity
+    return compute_similarity
+
+
 # Fiction indicators in subjects/categories
 FICTION_INDICATORS = {
     "fiction",
@@ -94,9 +113,11 @@ def search_books_for_skill(skill, client, book_limit):
 
 def filter_books(
     books: List[Dict],
+    skill: Dict,
     min_year: int = 2020,
     require_description: bool = True,
     exclude_fiction: bool = True,
+    semantic_skill: Dict = None,
 ) -> List[Dict]:
     """
     Hard quality filters only.
@@ -108,6 +129,7 @@ def filter_books(
         require_description: If False, skip description check
             (Open Library doesn't return descriptions in search)
         exclude_fiction: If True, filter out fiction books
+        semantic_skill: Skill dict for semantic filtering (optional)
     """
     filtered = []
 
@@ -136,6 +158,13 @@ def filter_books(
 
         # Exclude fiction if requested
         if exclude_fiction and is_fiction(b):
+            continue
+
+        # Get the appropriate similarity function based on SEMANTIC_MODEL setting
+        compute_similarity = get_similarity_function()
+        similarity = compute_similarity(skill, b)
+        print(f"    {b['title'][:40]}: {similarity:.2f}")  # Add this line
+        if similarity < 0.5:
             continue
 
         filtered.append(b)
@@ -211,17 +240,21 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
                 # Open Library doesn't return descriptions in search results
                 filtered_books = filter_books(
                     books,
+                    skill,
                     min_year=min_year,
                     require_description=False,
                     exclude_fiction=True,
+                    semantic_skill=skill,
                 )
             else:
                 books = client.search(query, book_limit)
                 filtered_books = filter_books(
                     books,
+                    skill,
                     min_year=min_year,
                     require_description=True,
                     exclude_fiction=True,
+                    semantic_skill=skill,
                 )
 
             print(f"  {source_name}: {len(filtered_books)} books after filter")
@@ -291,7 +324,18 @@ if __name__ == "__main__":
         default=2020,
         help="Minimum publication year (default: 2020)",
     )
+    parser.add_argument(
+        "--semantic-model",
+        type=str,
+        choices=["transformer", "cohere"],
+        default="transformer",
+        help="Semantic model to use: 'transformer' (local, fast) or 'cohere' (API, better quality)",
+    )
     args = parser.parse_args()
+
+    # Set the semantic model before running search
+    set_semantic_model(args.semantic_model)
+    print(f"Using semantic model: {args.semantic_model}")
 
     results = run_search(
         skill_limit=args.skill_limit,
