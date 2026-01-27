@@ -12,6 +12,7 @@ load_dotenv()
 class GoogleBooksClient:
     """Google Books API client using requests."""
 
+    SOURCE_NAME = "google_books"
     BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
     def _get_with_backoff(self, params, max_attempts=8):
