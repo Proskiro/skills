@@ -126,6 +126,7 @@ class GoogleBooksClient:
                     "published_year": year,
                     "average_rating": volume_info.get("averageRating"),
                     "ratings_count": volume_info.get("ratingsCount"),
+                    "semantic_relevance_score": None,  # To be filled later if needed
                     "metadata": item,
                 }
             )
