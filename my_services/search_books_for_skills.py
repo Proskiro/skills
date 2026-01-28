@@ -1,5 +1,26 @@
 """
 Service: Get skills from DB and fetch book results for each.
+
+Pipeline:
+1. Fetch skills from DB (knowledge skills with descriptions, leaf nodes only)
+2. For each skill, search Google Books and Open Library APIs
+3. Filter books through quality gates:
+   - Publication year >= min_year (default 2020)
+   - Must have ISBN (for Amazon linking)
+   - Must have title, authors, and description (Google) or title/authors (Open Library)
+   - English language only
+   - Exclude fiction based on subject indicators
+   - Spam title detection (filters SEO-stuffed titles with unrelated topics like cheese, recipes, etc.)
+   - Semantic similarity check (skill description vs book title+description, threshold 0.5)
+4. Rank filtered books using book_ranking.py scoring
+5. Persist top 5 books per source to DB with skill linkage
+
+CLI Arguments:
+    --force-refresh     Ignore recently fetched check, re-fetch all sources
+    --skill-limit N     Max skills to process (default 1000)
+    --book-limit N      Max books per source (default 40)
+    --min-year N        Min publication year (default 2020)
+    --semantic-model    'transformer' (local, fast) or 'cohere' (API, better quality)
 """
 
 import argparse
@@ -78,18 +99,58 @@ def is_fiction(book: Dict) -> bool:
 # Spam title detection - unrelated topic combinations
 SPAM_INDICATORS = {
     # Food/cooking terms that shouldn't appear in professional books
-    "cheese", "artisan", "artisanal", "recipe", "recipes", "cookbook", "cooking",
-    "baking", "wine", "beer", "cocktail", "cuisine", "chef", "gourmet", "foodie",
-    "dessert", "pastry", "sourdough", "ferment", "pickle", "jam", "preserve",
+    "cheese",
+    "artisan",
+    "artisanal",
+    "recipe",
+    "recipes",
+    "cookbook",
+    "cooking",
+    "baking",
+    "wine",
+    "beer",
+    "cocktail",
+    "cuisine",
+    "chef",
+    "gourmet",
+    "foodie",
+    "dessert",
+    "pastry",
+    "sourdough",
+    "ferment",
+    "pickle",
+    "jam",
+    "preserve",
     # Hobby/craft terms
-    "knitting", "crochet", "quilting", "scrapbook", "origami", "pottery",
-    "gardening", "garden", "landscaping", "houseplant",
+    "knitting",
+    "crochet",
+    "quilting",
+    "scrapbook",
+    "origami",
+    "pottery",
+    "gardening",
+    "garden",
+    "landscaping",
+    "houseplant",
     # Pet/animal care
-    "dog training", "puppy", "kitten", "aquarium", "terrarium",
+    "dog training",
+    "puppy",
+    "kitten",
+    "aquarium",
+    "terrarium",
     # Travel/lifestyle
-    "travel guide", "vacation", "resort", "spa", "wellness retreat",
+    "travel guide",
+    "vacation",
+    "resort",
+    "spa",
+    "wellness retreat",
     # Fiction/entertainment sneaking in
-    "vampire", "zombie", "werewolf", "dragon", "wizard", "witch",
+    "vampire",
+    "zombie",
+    "werewolf",
+    "dragon",
+    "wizard",
+    "witch",
 }
 
 
@@ -146,8 +207,6 @@ def filter_books(
     skill: Dict,
     min_year: int = 2020,
     require_description: bool = True,
-    exclude_fiction: bool = True,
-    semantic_skill: Dict = None,
 ) -> List[Dict]:
     """
     Hard quality filters only.
@@ -187,7 +246,7 @@ def filter_books(
             continue
 
         # Exclude fiction if requested
-        if exclude_fiction and is_fiction(b):
+        if is_fiction(b):
             continue
 
         # Spam title detection - catches SEO-stuffed titles with unrelated topics
@@ -278,8 +337,6 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
                     skill,
                     min_year=min_year,
                     require_description=False,
-                    exclude_fiction=True,
-                    semantic_skill=skill,
                 )
             else:
                 books = client.search(query, book_limit)
@@ -288,8 +345,6 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
                     skill,
                     min_year=min_year,
                     require_description=True,
-                    exclude_fiction=True,
-                    semantic_skill=skill,
                 )
 
             print(f"  {source_name}: {len(filtered_books)} books after filter")
