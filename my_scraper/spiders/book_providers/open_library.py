@@ -451,3 +451,44 @@ class OpenLibraryClient:
             return description
         except Exception:
             return None
+
+    def enrich_with_descriptions(
+        self,
+        books: List[Dict],
+        max_books: Optional[int] = None,
+        delay: float = 0.1,
+    ) -> List[Dict]:
+        """
+        Fetch descriptions for books that don't have them.
+        
+        Args:
+            books: List of book dicts from search results
+            max_books: Maximum number of books to enrich (None = all)
+            delay: Delay between API calls to avoid rate limiting
+            
+        Returns:
+            Same list with descriptions populated where available
+        """
+        count = 0
+        for book in books:
+            if max_books and count >= max_books:
+                break
+                
+            # Skip if already has description
+            if book.get("description"):
+                continue
+                
+            work_id = book.get("external_id")
+            if not work_id:
+                continue
+                
+            description = self.get_work_description(work_id)
+            if description:
+                book["description"] = description
+                count += 1
+                
+            # Rate limiting
+            if delay > 0:
+                time.sleep(delay)
+                
+        return books

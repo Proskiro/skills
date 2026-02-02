@@ -20,7 +20,7 @@ CLI Arguments:
     --skill-limit N     Max skills to process (default 1000)
     --book-limit N      Max books per source (default 40)
     --min-year N        Min publication year (default 2020)
-    --semantic-model    'transformer' (local, fast) or 'cohere' (API, better quality)
+    --semantic-model    'cohere' (rerank, default) or 'cohere_embed' (embed, legacy)
 """
 
 import argparse
@@ -39,8 +39,10 @@ from my_services.book_ranking import rank_books
 from my_tools.db import get_db_connection
 
 # Semantic model selection - set via CLI argument
-# Options: "transformer" (local, fast) or "cohere" (API, better quality)
-_config = {"semantic_model": "transformer"}  # default
+# Options:
+#   - "cohere" (default): Cohere rerank API - best quality, profession-aware
+#   - "cohere_embed": Cohere embed API - legacy, per-book similarity
+_config = {"semantic_model": "cohere"}
 
 
 def set_semantic_model(model: str):
@@ -48,13 +50,31 @@ def set_semantic_model(model: str):
     _config["semantic_model"] = model
 
 
-def get_similarity_function():
-    """Return the appropriate similarity function based on semantic model config."""
-    if _config["semantic_model"] == "cohere":
+def _make_embed_reranker(compute_similarity_fn):
+    """Create a rerank function from an embedding similarity function."""
+    def rerank(skill, books, top_n=10):
+        scored = [
+            (b, compute_similarity_fn(skill, b))
+            for b in books
+        ]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[:top_n]
+    return rerank
+
+
+def get_rerank_function():
+    """Return the appropriate rerank function based on semantic model config."""
+    model = _config["semantic_model"]
+    
+    if model == "cohere":
+        # Cohere rerank: batch API, profession-aware, best quality
+        from my_services.semantic_filtering_cohere import rerank_books_for_skill
+        return rerank_books_for_skill
+    
+    else:  # cohere_embed
+        # Cohere embed: per-book similarity, legacy option
         from my_services.semantic_filtering_cohere import compute_similarity
-    else:
-        from my_services.semantic_filtering_transformer import compute_similarity
-    return compute_similarity
+        return _make_embed_reranker(compute_similarity)
 
 
 # Fiction indicators in subjects/categories
@@ -168,9 +188,25 @@ def is_spam_title(title: str) -> bool:
 
 def fetch_skills(limit: int = 50) -> List[Dict]:
     sql = """
-        SELECT uri, skill_code, preferred_title, description, books_last_fetched_at
-        FROM skills
-        WHERE skill_type ILIKE 'knowledge' AND description is not NULL AND is_leaf = TRUE
+        SELECT s.uri, 
+		s.skill_code, 
+		s.preferred_title AS skill_title, 
+		s.description, 
+		s.books_last_fetched_at, 
+		os.occupation_uri, 
+		o.preferred_title AS occupation_title
+        FROM skills s
+        
+        LEFT JOIN occupation_skills os
+        ON s.uri = os.skill_uri
+        
+        LEFT JOIN occupations o
+        ON os.occupation_uri = o.uri
+ 		WHERE s.skill_type ILIKE 'knowledge' 
+ 		AND s.description is not NULL 
+ 		AND o.uri is not NULL
+ 		AND s.is_leaf = TRUE
+ 		
         ORDER BY skill_code
         LIMIT %s;
     """
@@ -185,6 +221,7 @@ def fetch_skills(limit: int = 50) -> List[Dict]:
     return [
         {
             "uri": r[0],
+            "occupation_title": r[6],
             "skill_code": r[1],
             "title": r[2],
             "description": r[3],
@@ -204,21 +241,18 @@ def search_books_for_skill(skill, client, book_limit):
 
 def filter_books(
     books: List[Dict],
-    skill: Dict,
     min_year: int = 2020,
     require_description: bool = True,
 ) -> List[Dict]:
     """
-    Hard quality filters only.
-    These remove junk but keep good unrated books.
+    Hard quality filters only (no semantic filtering).
+    Semantic relevance is handled separately by rerank.
 
     Args:
         books: List of book dicts
         min_year: Minimum publication year
         require_description: If False, skip description check
             (Open Library doesn't return descriptions in search)
-        exclude_fiction: If True, filter out fiction books
-        semantic_skill: Skill dict for semantic filtering (optional)
     """
     filtered = []
 
@@ -251,14 +285,7 @@ def filter_books(
 
         # Spam title detection - catches SEO-stuffed titles with unrelated topics
         if is_spam_title(b.get("title", "")):
-            print(f"    [SPAM] {b['title'][:50]}")
-            continue
-
-        # Get the appropriate similarity function based on SEMANTIC_MODEL setting
-        compute_similarity = get_similarity_function()
-        similarity = compute_similarity(skill, b)
-        print(f"    {b['title'][:40]}: {similarity:.2f}")  # Add this line
-        if similarity < 0.5:
+            print(f"    [SPAM] {b.get('title', '')[:50]}")
             continue
 
         filtered.append(b)
@@ -293,7 +320,8 @@ def has_books_from_source(
 
 
 def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=False):
-    clients = [GoogleBooksClient(), OpenLibraryClient()]
+    # TODO: Re-enable OpenLibraryClient() when search quality improves
+    clients = [GoogleBooksClient()]
     skills = fetch_skills(limit=skill_limit)
     results = []
 
@@ -304,7 +332,7 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
 
     for i, skill in enumerate(skills, start=1):
         print("\n" + "=" * 60)
-        print(f"[{i}/{len(skills)}] Skill: {skill['title']}")
+        print(f"[{i}/{len(skills)}] Skill: {skill['title']} (for {skill.get('occupation_title', 'general')})")
         print("=" * 60)
 
         for client in clients:
@@ -321,36 +349,52 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
             query = skill["title"] or skill["description"]
 
             # Call search with source-specific params
-            if source_name == "open_library":
-                # Open Library has built-in filtering and subject matching
-                books = client.search(
-                    query,
-                    max_results=book_limit,
-                    language="eng",
-                    min_year=min_year,
-                    filter_by_subject=True,
-                    subject_threshold=0.7,
-                )
-                # Open Library doesn't return descriptions in search results
-                filtered_books = filter_books(
-                    books,
-                    skill,
-                    min_year=min_year,
-                    require_description=False,
-                )
-            else:
-                books = client.search(query, book_limit)
-                filtered_books = filter_books(
-                    books,
-                    skill,
-                    min_year=min_year,
-                    require_description=True,
-                )
+            try:
+                if source_name == "open_library":
+                    # Open Library has built-in filtering and subject matching
+                    books = client.search(
+                        query,
+                        max_results=book_limit,
+                        language="eng",
+                        min_year=min_year,
+                        filter_by_subject=True,
+                        subject_threshold=0.7,
+                    )
+                    # Open Library doesn't return descriptions in search results
+                    # Fetch descriptions for better reranking (limit to top candidates)
+                    filtered_books = filter_books(
+                        books,
+                        min_year=min_year,
+                        require_description=False,
+                    )
+                    # Enrich with descriptions before reranking
+                    print(f"  Fetching descriptions for {min(len(filtered_books), 20)} Open Library books...")
+                    client.enrich_with_descriptions(filtered_books, max_books=20, delay=0.1)
+                else:
+                    books = client.search(query, book_limit)
+                    filtered_books = filter_books(
+                        books,
+                        min_year=min_year,
+                        require_description=True,
+                    )
+            except Exception as e:
+                print(f"  [ERROR] {source_name} failed: {e}")
+                continue
 
-            print(f"  {source_name}: {len(filtered_books)} books after filter")
+            print(f"  {source_name}: {len(filtered_books)} books after hard filters")
+
+            # Semantic reranking - returns [(book, score), ...] sorted by relevance
+            rerank_fn = get_rerank_function()
+            reranked = rerank_fn(skill, filtered_books, top_n=10)
+            
+            for b, score in reranked:
+                print(f"    {b.get('title', '')[:40]}: {score:.2f}")
+
+            # Extract just the books for further ranking
+            semantically_filtered = [b for b, score in reranked]
 
             ranked_books = rank_books(
-                list(enumerate(filtered_books)), source=source_name
+                list(enumerate(semantically_filtered)), source=source_name
             )
             top_books = ranked_books[:5]
 
@@ -360,7 +404,7 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
                 print("    (no books passed filters)")
             else:
                 for b in top_books:
-                    print(f"    - {b['title']} | {b.get('published_year')}")
+                    print(f"    - {b.get('title', '')} | {b.get('published_year', '')}")
 
             results.append(
                 {
@@ -417,9 +461,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--semantic-model",
         type=str,
-        choices=["transformer", "cohere"],
-        default="transformer",
-        help="Semantic model to use: 'transformer' (local, fast) or 'cohere' (API, better quality)",
+        choices=["cohere", "cohere_embed"],
+        default="cohere",
+        help="Semantic model: 'cohere' (rerank, best) or 'cohere_embed' (embed, legacy)",
     )
     args = parser.parse_args()
 
