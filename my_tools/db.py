@@ -15,7 +15,7 @@ def get_db_connection():
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
         sslmode="verify-full",
-        sslrootcert="/Users/eikram/Documents/Stickies/Other/Skills/global-bundle.pem",
+        sslrootcert="/Users/esa/Desktop/side_projects/proskiro/skills/global-bundle.pem",
     )
     conn.autocommit = False
     return conn

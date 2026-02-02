@@ -1,802 +1,0 @@
-Using semantic model: transformer
-Force refresh enabled - ignoring recently fetched check
-
-============================================================
-[1/20] Skill: basic programmes and qualifications
-============================================================
-  google_books: 0 books after filter
-  Returning top 0 books
-    (no books passed filters)
-  open_library: 0 books after filter
-  Returning top 0 books
-    (no books passed filters)
-
-============================================================
-[2/20] Skill: literacy and numeracy
-============================================================
-  google_books: 0 books after filter
-  Returning top 0 books
-    (no books passed filters)
-  open_library: 0 books after filter
-  Returning top 0 books
-    (no books passed filters)
-
-============================================================
-[3/20] Skill: Assertiveness
-============================================================
-Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights:   1%|          | 1/103 [00:00<00:00, 3269.14it/s, Materializing param=embeddings.LayerNorm.bias]Loading weights:   1%|          | 1/103 [00:00<00:00, 2732.45it/s, Materializing param=embeddings.LayerNorm.bias]Loading weights:   2%|▏         | 2/103 [00:00<00:00, 1083.38it/s, Materializing param=embeddings.LayerNorm.weight]Loading weights:   2%|▏         | 2/103 [00:00<00:00, 881.06it/s, Materializing param=embeddings.LayerNorm.weight] Loading weights:   3%|▎         | 3/103 [00:00<00:00, 1225.93it/s, Materializing param=embeddings.position_embeddings.weight]Loading weights:   3%|▎         | 3/103 [00:00<00:00, 1198.60it/s, Materializing param=embeddings.position_embeddings.weight]Loading weights:   4%|▍         | 4/103 [00:00<00:00, 1140.61it/s, Materializing param=embeddings.token_type_embeddings.weight]Loading weights:   4%|▍         | 4/103 [00:00<00:00, 1120.80it/s, Materializing param=embeddings.token_type_embeddings.weight]Loading weights:   5%|▍         | 5/103 [00:00<00:00, 1372.57it/s, Materializing param=embeddings.word_embeddings.weight]      Loading weights:   5%|▍         | 5/103 [00:00<00:00, 1353.87it/s, Materializing param=embeddings.word_embeddings.weight]Loading weights:   6%|▌         | 6/103 [00:00<00:00, 1554.02it/s, Materializing param=encoder.layer.0.attention.output.LayerNorm.bias]Loading weights:   6%|▌         | 6/103 [00:00<00:00, 1532.63it/s, Materializing param=encoder.layer.0.attention.output.LayerNorm.bias]Loading weights:   7%|▋         | 7/103 [00:00<00:00, 1533.41it/s, Materializing param=encoder.layer.0.attention.output.LayerNorm.weight]Loading weights:   7%|▋         | 7/103 [00:00<00:00, 1521.09it/s, Materializing param=encoder.layer.0.attention.output.LayerNorm.weight]Loading weights:   8%|▊         | 8/103 [00:00<00:00, 1609.02it/s, Materializing param=encoder.layer.0.attention.output.dense.bias]      Loading weights:   8%|▊         | 8/103 [00:00<00:00, 1498.70it/s, Materializing param=encoder.layer.0.attention.output.dense.bias]Loading weights:   9%|▊         | 9/103 [00:00<00:00, 1530.58it/s, Materializing param=encoder.layer.0.attention.output.dense.weight]Loading weights:   9%|▊         | 9/103 [00:00<00:00, 1456.30it/s, Materializing param=encoder.layer.0.attention.output.dense.weight]Loading weights:  10%|▉         | 10/103 [00:00<00:00, 1505.82it/s, Materializing param=encoder.layer.0.attention.self.key.bias]     Loading weights:  10%|▉         | 10/103 [00:00<00:00, 1491.26it/s, Materializing param=encoder.layer.0.attention.self.key.bias]Loading weights:  11%|█         | 11/103 [00:00<00:00, 1605.34it/s, Materializing param=encoder.layer.0.attention.self.key.weight]Loading weights:  11%|█         | 11/103 [00:00<00:00, 1598.83it/s, Materializing param=encoder.layer.0.attention.self.key.weight]Loading weights:  12%|█▏        | 12/103 [00:00<00:00, 1728.36it/s, Materializing param=encoder.layer.0.attention.self.query.bias]Loading weights:  12%|█▏        | 12/103 [00:00<00:00, 1721.21it/s, Materializing param=encoder.layer.0.attention.self.query.bias]Loading weights:  13%|█▎        | 13/103 [00:00<00:00, 1752.46it/s, Materializing param=encoder.layer.0.attention.self.query.weight]Loading weights:  13%|█▎        | 13/103 [00:00<00:00, 1744.94it/s, Materializing param=encoder.layer.0.attention.self.query.weight]Loading weights:  14%|█▎        | 14/103 [00:00<00:00, 1850.62it/s, Materializing param=encoder.layer.0.attention.self.value.bias]  Loading weights:  14%|█▎        | 14/103 [00:00<00:00, 1835.35it/s, Materializing param=encoder.layer.0.attention.self.value.bias]Loading weights:  15%|█▍        | 15/103 [00:00<00:00, 1914.27it/s, Materializing param=encoder.layer.0.attention.self.value.weight]Loading weights:  15%|█▍        | 15/103 [00:00<00:00, 1835.31it/s, Materializing param=encoder.layer.0.attention.self.value.weight]Loading weights:  16%|█▌        | 16/103 [00:00<00:00, 1921.73it/s, Materializing param=encoder.layer.0.intermediate.dense.bias]    Loading weights:  16%|█▌        | 16/103 [00:00<00:00, 1915.04it/s, Materializing param=encoder.layer.0.intermediate.dense.bias]Loading weights:  17%|█▋        | 17/103 [00:00<00:00, 1891.23it/s, Materializing param=encoder.layer.0.intermediate.dense.weight]Loading weights:  17%|█▋        | 17/103 [00:00<00:00, 1884.73it/s, Materializing param=encoder.layer.0.intermediate.dense.weight]Loading weights:  17%|█▋        | 18/103 [00:00<00:00, 1979.74it/s, Materializing param=encoder.layer.0.output.LayerNorm.bias]    Loading weights:  17%|█▋        | 18/103 [00:00<00:00, 1973.27it/s, Materializing param=encoder.layer.0.output.LayerNorm.bias]Loading weights:  18%|█▊        | 19/103 [00:00<00:00, 2066.80it/s, Materializing param=encoder.layer.0.output.LayerNorm.weight]Loading weights:  18%|█▊        | 19/103 [00:00<00:00, 2052.06it/s, Materializing param=encoder.layer.0.output.LayerNorm.weight]Loading weights:  19%|█▉        | 20/103 [00:00<00:00, 2056.59it/s, Materializing param=encoder.layer.0.output.dense.bias]      Loading weights:  19%|█▉        | 20/103 [00:00<00:00, 2044.56it/s, Materializing param=encoder.layer.0.output.dense.bias]Loading weights:  20%|██        | 21/103 [00:00<00:00, 2072.04it/s, Materializing param=encoder.layer.0.output.dense.weight]Loading weights:  20%|██        | 21/103 [00:00<00:00, 2065.53it/s, Materializing param=encoder.layer.0.output.dense.weight]Loading weights:  21%|██▏       | 22/103 [00:00<00:00, 2147.82it/s, Materializing param=encoder.layer.1.attention.output.LayerNorm.bias]Loading weights:  21%|██▏       | 22/103 [00:00<00:00, 2125.21it/s, Materializing param=encoder.layer.1.attention.output.LayerNorm.bias]Loading weights:  22%|██▏       | 23/103 [00:00<00:00, 2180.53it/s, Materializing param=encoder.layer.1.attention.output.LayerNorm.weight]Loading weights:  22%|██▏       | 23/103 [00:00<00:00, 2158.63it/s, Materializing param=encoder.layer.1.attention.output.LayerNorm.weight]Loading weights:  23%|██▎       | 24/103 [00:00<00:00, 2075.57it/s, Materializing param=encoder.layer.1.attention.output.dense.bias]      Loading weights:  23%|██▎       | 24/103 [00:00<00:00, 2069.00it/s, Materializing param=encoder.layer.1.attention.output.dense.bias]Loading weights:  24%|██▍       | 25/103 [00:00<00:00, 2073.64it/s, Materializing param=encoder.layer.1.attention.output.dense.weight]Loading weights:  24%|██▍       | 25/103 [00:00<00:00, 2023.65it/s, Materializing param=encoder.layer.1.attention.output.dense.weight]Loading weights:  25%|██▌       | 26/103 [00:00<00:00, 1981.39it/s, Materializing param=encoder.layer.1.attention.self.key.bias]      Loading weights:  25%|██▌       | 26/103 [00:00<00:00, 1967.77it/s, Materializing param=encoder.layer.1.attention.self.key.bias]Loading weights:  26%|██▌       | 27/103 [00:00<00:00, 1956.84it/s, Materializing param=encoder.layer.1.attention.self.key.weight]Loading weights:  26%|██▌       | 27/103 [00:00<00:00, 1894.48it/s, Materializing param=encoder.layer.1.attention.self.key.weight]Loading weights:  27%|██▋       | 28/103 [00:00<00:00, 1940.56it/s, Materializing param=encoder.layer.1.attention.self.query.bias]Loading weights:  27%|██▋       | 28/103 [00:00<00:00, 1908.52it/s, Materializing param=encoder.layer.1.attention.self.query.bias]Loading weights:  28%|██▊       | 29/103 [00:00<00:00, 1939.15it/s, Materializing param=encoder.layer.1.attention.self.query.weight]Loading weights:  28%|██▊       | 29/103 [00:00<00:00, 1935.13it/s, Materializing param=encoder.layer.1.attention.self.query.weight]Loading weights:  29%|██▉       | 30/103 [00:00<00:00, 1921.23it/s, Materializing param=encoder.layer.1.attention.self.value.bias]  Loading weights:  29%|██▉       | 30/103 [00:00<00:00, 1910.00it/s, Materializing param=encoder.layer.1.attention.self.value.bias]Loading weights:  30%|███       | 31/103 [00:00<00:00, 1919.76it/s, Materializing param=encoder.layer.1.attention.self.value.weight]Loading weights:  30%|███       | 31/103 [00:00<00:00, 1911.69it/s, Materializing param=encoder.layer.1.attention.self.value.weight]Loading weights:  31%|███       | 32/103 [00:00<00:00, 1957.90it/s, Materializing param=encoder.layer.1.intermediate.dense.bias]    Loading weights:  31%|███       | 32/103 [00:00<00:00, 1944.93it/s, Materializing param=encoder.layer.1.intermediate.dense.bias]Loading weights:  32%|███▏      | 33/103 [00:00<00:00, 1937.97it/s, Materializing param=encoder.layer.1.intermediate.dense.weight]Loading weights:  32%|███▏      | 33/103 [00:00<00:00, 1932.43it/s, Materializing param=encoder.layer.1.intermediate.dense.weight]Loading weights:  33%|███▎      | 34/103 [00:00<00:00, 1928.75it/s, Materializing param=encoder.layer.1.output.LayerNorm.bias]    Loading weights:  33%|███▎      | 34/103 [00:00<00:00, 1919.82it/s, Materializing param=encoder.layer.1.output.LayerNorm.bias]Loading weights:  34%|███▍      | 35/103 [00:00<00:00, 1857.27it/s, Materializing param=encoder.layer.1.output.LayerNorm.weight]Loading weights:  34%|███▍      | 35/103 [00:00<00:00, 1843.07it/s, Materializing param=encoder.layer.1.output.LayerNorm.weight]Loading weights:  35%|███▍      | 36/103 [00:00<00:00, 1840.01it/s, Materializing param=encoder.layer.1.output.dense.bias]      Loading weights:  35%|███▍      | 36/103 [00:00<00:00, 1834.40it/s, Materializing param=encoder.layer.1.output.dense.bias]Loading weights:  36%|███▌      | 37/103 [00:00<00:00, 1872.95it/s, Materializing param=encoder.layer.1.output.dense.weight]Loading weights:  36%|███▌      | 37/103 [00:00<00:00, 1868.33it/s, Materializing param=encoder.layer.1.output.dense.weight]Loading weights:  37%|███▋      | 38/103 [00:00<00:00, 1882.12it/s, Materializing param=encoder.layer.2.attention.output.LayerNorm.bias]Loading weights:  37%|███▋      | 38/103 [00:00<00:00, 1875.72it/s, Materializing param=encoder.layer.2.attention.output.LayerNorm.bias]Loading weights:  38%|███▊      | 39/103 [00:00<00:00, 1911.02it/s, Materializing param=encoder.layer.2.attention.output.LayerNorm.weight]Loading weights:  38%|███▊      | 39/103 [00:00<00:00, 1901.14it/s, Materializing param=encoder.layer.2.attention.output.LayerNorm.weight]Loading weights:  39%|███▉      | 40/103 [00:00<00:00, 1940.91it/s, Materializing param=encoder.layer.2.attention.output.dense.bias]      Loading weights:  39%|███▉      | 40/103 [00:00<00:00, 1938.08it/s, Materializing param=encoder.layer.2.attention.output.dense.bias]Loading weights:  40%|███▉      | 41/103 [00:00<00:00, 1978.95it/s, Materializing param=encoder.layer.2.attention.output.dense.weight]Loading weights:  40%|███▉      | 41/103 [00:00<00:00, 1976.10it/s, Materializing param=encoder.layer.2.attention.output.dense.weight]Loading weights:  41%|████      | 42/103 [00:00<00:00, 2018.57it/s, Materializing param=encoder.layer.2.attention.self.key.bias]      Loading weights:  41%|████      | 42/103 [00:00<00:00, 2015.85it/s, Materializing param=encoder.layer.2.attention.self.key.bias]Loading weights:  42%|████▏     | 43/103 [00:00<00:00, 2053.69it/s, Materializing param=encoder.layer.2.attention.self.key.weight]Loading weights:  42%|████▏     | 43/103 [00:00<00:00, 2051.05it/s, Materializing param=encoder.layer.2.attention.self.key.weight]Loading weights:  43%|████▎     | 44/103 [00:00<00:00, 2093.63it/s, Materializing param=encoder.layer.2.attention.self.query.bias]Loading weights:  43%|████▎     | 44/103 [00:00<00:00, 2091.28it/s, Materializing param=encoder.layer.2.attention.self.query.bias]Loading weights:  44%|████▎     | 45/103 [00:00<00:00, 2134.24it/s, Materializing param=encoder.layer.2.attention.self.query.weight]Loading weights:  44%|████▎     | 45/103 [00:00<00:00, 2131.69it/s, Materializing param=encoder.layer.2.attention.self.query.weight]Loading weights:  45%|████▍     | 46/103 [00:00<00:00, 2173.83it/s, Materializing param=encoder.layer.2.attention.self.value.bias]  Loading weights:  45%|████▍     | 46/103 [00:00<00:00, 2171.36it/s, Materializing param=encoder.layer.2.attention.self.value.bias]Loading weights:  46%|████▌     | 47/103 [00:00<00:00, 2212.31it/s, Materializing param=encoder.layer.2.attention.self.value.weight]Loading weights:  46%|████▌     | 47/103 [00:00<00:00, 2209.36it/s, Materializing param=encoder.layer.2.attention.self.value.weight]Loading weights:  47%|████▋     | 48/103 [00:00<00:00, 2248.88it/s, Materializing param=encoder.layer.2.intermediate.dense.bias]    Loading weights:  47%|████▋     | 48/103 [00:00<00:00, 2246.12it/s, Materializing param=encoder.layer.2.intermediate.dense.bias]Loading weights:  48%|████▊     | 49/103 [00:00<00:00, 2287.58it/s, Materializing param=encoder.layer.2.intermediate.dense.weight]Loading weights:  48%|████▊     | 49/103 [00:00<00:00, 2285.01it/s, Materializing param=encoder.layer.2.intermediate.dense.weight]Loading weights:  49%|████▊     | 50/103 [00:00<00:00, 2326.24it/s, Materializing param=encoder.layer.2.output.LayerNorm.bias]    Loading weights:  49%|████▊     | 50/103 [00:00<00:00, 2323.64it/s, Materializing param=encoder.layer.2.output.LayerNorm.bias]Loading weights:  50%|████▉     | 51/103 [00:00<00:00, 2365.18it/s, Materializing param=encoder.layer.2.output.LayerNorm.weight]Loading weights:  50%|████▉     | 51/103 [00:00<00:00, 2362.44it/s, Materializing param=encoder.layer.2.output.LayerNorm.weight]Loading weights:  50%|█████     | 52/103 [00:00<00:00, 2404.20it/s, Materializing param=encoder.layer.2.output.dense.bias]      Loading weights:  50%|█████     | 52/103 [00:00<00:00, 2401.63it/s, Materializing param=encoder.layer.2.output.dense.bias]Loading weights:  51%|█████▏    | 53/103 [00:00<00:00, 2443.21it/s, Materializing param=encoder.layer.2.output.dense.weight]Loading weights:  51%|█████▏    | 53/103 [00:00<00:00, 2440.61it/s, Materializing param=encoder.layer.2.output.dense.weight]Loading weights:  52%|█████▏    | 54/103 [00:00<00:00, 2481.27it/s, Materializing param=encoder.layer.3.attention.output.LayerNorm.bias]Loading weights:  52%|█████▏    | 54/103 [00:00<00:00, 2478.55it/s, Materializing param=encoder.layer.3.attention.output.LayerNorm.bias]Loading weights:  53%|█████▎    | 55/103 [00:00<00:00, 2518.77it/s, Materializing param=encoder.layer.3.attention.output.LayerNorm.weight]Loading weights:  53%|█████▎    | 55/103 [00:00<00:00, 2515.45it/s, Materializing param=encoder.layer.3.attention.output.LayerNorm.weight]Loading weights:  54%|█████▍    | 56/103 [00:00<00:00, 2549.29it/s, Materializing param=encoder.layer.3.attention.output.dense.bias]      Loading weights:  54%|█████▍    | 56/103 [00:00<00:00, 2546.38it/s, Materializing param=encoder.layer.3.attention.output.dense.bias]Loading weights:  55%|█████▌    | 57/103 [00:00<00:00, 2586.70it/s, Materializing param=encoder.layer.3.attention.output.dense.weight]Loading weights:  55%|█████▌    | 57/103 [00:00<00:00, 2583.87it/s, Materializing param=encoder.layer.3.attention.output.dense.weight]Loading weights:  56%|█████▋    | 58/103 [00:00<00:00, 2623.96it/s, Materializing param=encoder.layer.3.attention.self.key.bias]      Loading weights:  56%|█████▋    | 58/103 [00:00<00:00, 2621.21it/s, Materializing param=encoder.layer.3.attention.self.key.bias]Loading weights:  57%|█████▋    | 59/103 [00:00<00:00, 2661.36it/s, Materializing param=encoder.layer.3.attention.self.key.weight]Loading weights:  57%|█████▋    | 59/103 [00:00<00:00, 2658.64it/s, Materializing param=encoder.layer.3.attention.self.key.weight]Loading weights:  58%|█████▊    | 60/103 [00:00<00:00, 2697.36it/s, Materializing param=encoder.layer.3.attention.self.query.bias]Loading weights:  58%|█████▊    | 60/103 [00:00<00:00, 2694.47it/s, Materializing param=encoder.layer.3.attention.self.query.bias]Loading weights:  59%|█████▉    | 61/103 [00:00<00:00, 2734.34it/s, Materializing param=encoder.layer.3.attention.self.query.weight]Loading weights:  59%|█████▉    | 61/103 [00:00<00:00, 2731.40it/s, Materializing param=encoder.layer.3.attention.self.query.weight]Loading weights:  60%|██████    | 62/103 [00:00<00:00, 2768.25it/s, Materializing param=encoder.layer.3.attention.self.value.bias]  Loading weights:  60%|██████    | 62/103 [00:00<00:00, 2765.40it/s, Materializing param=encoder.layer.3.attention.self.value.bias]Loading weights:  61%|██████    | 63/103 [00:00<00:00, 2804.75it/s, Materializing param=encoder.layer.3.attention.self.value.weight]Loading weights:  61%|██████    | 63/103 [00:00<00:00, 2801.87it/s, Materializing param=encoder.layer.3.attention.self.value.weight]Loading weights:  62%|██████▏   | 64/103 [00:00<00:00, 2840.17it/s, Materializing param=encoder.layer.3.intermediate.dense.bias]    Loading weights:  62%|██████▏   | 64/103 [00:00<00:00, 2836.74it/s, Materializing param=encoder.layer.3.intermediate.dense.bias]Loading weights:  63%|██████▎   | 65/103 [00:00<00:00, 2875.72it/s, Materializing param=encoder.layer.3.intermediate.dense.weight]Loading weights:  63%|██████▎   | 65/103 [00:00<00:00, 2872.81it/s, Materializing param=encoder.layer.3.intermediate.dense.weight]Loading weights:  64%|██████▍   | 66/103 [00:00<00:00, 2911.12it/s, Materializing param=encoder.layer.3.output.LayerNorm.bias]    Loading weights:  64%|██████▍   | 66/103 [00:00<00:00, 2908.03it/s, Materializing param=encoder.layer.3.output.LayerNorm.bias]Loading weights:  65%|██████▌   | 67/103 [00:00<00:00, 2946.36it/s, Materializing param=encoder.layer.3.output.LayerNorm.weight]Loading weights:  65%|██████▌   | 67/103 [00:00<00:00, 2943.37it/s, Materializing param=encoder.layer.3.output.LayerNorm.weight]Loading weights:  66%|██████▌   | 68/103 [00:00<00:00, 2981.68it/s, Materializing param=encoder.layer.3.output.dense.bias]      Loading weights:  66%|██████▌   | 68/103 [00:00<00:00, 2978.54it/s, Materializing param=encoder.layer.3.output.dense.bias]Loading weights:  67%|██████▋   | 69/103 [00:00<00:00, 3016.79it/s, Materializing param=encoder.layer.3.output.dense.weight]Loading weights:  67%|██████▋   | 69/103 [00:00<00:00, 3013.65it/s, Materializing param=encoder.layer.3.output.dense.weight]Loading weights:  68%|██████▊   | 70/103 [00:00<00:00, 3052.12it/s, Materializing param=encoder.layer.4.attention.output.LayerNorm.bias]Loading weights:  68%|██████▊   | 70/103 [00:00<00:00, 3049.04it/s, Materializing param=encoder.layer.4.attention.output.LayerNorm.bias]Loading weights:  69%|██████▉   | 71/103 [00:00<00:00, 3086.83it/s, Materializing param=encoder.layer.4.attention.output.LayerNorm.weight]Loading weights:  69%|██████▉   | 71/103 [00:00<00:00, 3083.63it/s, Materializing param=encoder.layer.4.attention.output.LayerNorm.weight]Loading weights:  70%|██████▉   | 72/103 [00:00<00:00, 3120.41it/s, Materializing param=encoder.layer.4.attention.output.dense.bias]      Loading weights:  70%|██████▉   | 72/103 [00:00<00:00, 3117.15it/s, Materializing param=encoder.layer.4.attention.output.dense.bias]Loading weights:  71%|███████   | 73/103 [00:00<00:00, 3154.72it/s, Materializing param=encoder.layer.4.attention.output.dense.weight]Loading weights:  71%|███████   | 73/103 [00:00<00:00, 3151.47it/s, Materializing param=encoder.layer.4.attention.output.dense.weight]Loading weights:  72%|███████▏  | 74/103 [00:00<00:00, 3188.44it/s, Materializing param=encoder.layer.4.attention.self.key.bias]      Loading weights:  72%|███████▏  | 74/103 [00:00<00:00, 3185.26it/s, Materializing param=encoder.layer.4.attention.self.key.bias]Loading weights:  73%|███████▎  | 75/103 [00:00<00:00, 3222.49it/s, Materializing param=encoder.layer.4.attention.self.key.weight]Loading weights:  73%|███████▎  | 75/103 [00:00<00:00, 3219.29it/s, Materializing param=encoder.layer.4.attention.self.key.weight]Loading weights:  74%|███████▍  | 76/103 [00:00<00:00, 3256.35it/s, Materializing param=encoder.layer.4.attention.self.query.bias]Loading weights:  74%|███████▍  | 76/103 [00:00<00:00, 3253.16it/s, Materializing param=encoder.layer.4.attention.self.query.bias]Loading weights:  75%|███████▍  | 77/103 [00:00<00:00, 3284.43it/s, Materializing param=encoder.layer.4.attention.self.query.weight]Loading weights:  75%|███████▍  | 77/103 [00:00<00:00, 3281.19it/s, Materializing param=encoder.layer.4.attention.self.query.weight]Loading weights:  76%|███████▌  | 78/103 [00:00<00:00, 3318.04it/s, Materializing param=encoder.layer.4.attention.self.value.bias]  Loading weights:  76%|███████▌  | 78/103 [00:00<00:00, 3314.65it/s, Materializing param=encoder.layer.4.attention.self.value.bias]Loading weights:  77%|███████▋  | 79/103 [00:00<00:00, 3351.30it/s, Materializing param=encoder.layer.4.attention.self.value.weight]Loading weights:  77%|███████▋  | 79/103 [00:00<00:00, 3348.02it/s, Materializing param=encoder.layer.4.attention.self.value.weight]Loading weights:  78%|███████▊  | 80/103 [00:00<00:00, 3383.94it/s, Materializing param=encoder.layer.4.intermediate.dense.bias]    Loading weights:  78%|███████▊  | 80/103 [00:00<00:00, 3380.70it/s, Materializing param=encoder.layer.4.intermediate.dense.bias]Loading weights:  79%|███████▊  | 81/103 [00:00<00:00, 3416.72it/s, Materializing param=encoder.layer.4.intermediate.dense.weight]Loading weights:  79%|███████▊  | 81/103 [00:00<00:00, 3413.43it/s, Materializing param=encoder.layer.4.intermediate.dense.weight]Loading weights:  80%|███████▉  | 82/103 [00:00<00:00, 3445.22it/s, Materializing param=encoder.layer.4.output.LayerNorm.bias]    Loading weights:  80%|███████▉  | 82/103 [00:00<00:00, 3441.95it/s, Materializing param=encoder.layer.4.output.LayerNorm.bias]Loading weights:  81%|████████  | 83/103 [00:00<00:00, 3478.04it/s, Materializing param=encoder.layer.4.output.LayerNorm.weight]Loading weights:  81%|████████  | 83/103 [00:00<00:00, 3474.67it/s, Materializing param=encoder.layer.4.output.LayerNorm.weight]Loading weights:  82%|████████▏ | 84/103 [00:00<00:00, 3510.37it/s, Materializing param=encoder.layer.4.output.dense.bias]      Loading weights:  82%|████████▏ | 84/103 [00:00<00:00, 3507.05it/s, Materializing param=encoder.layer.4.output.dense.bias]Loading weights:  83%|████████▎ | 85/103 [00:00<00:00, 3542.70it/s, Materializing param=encoder.layer.4.output.dense.weight]Loading weights:  83%|████████▎ | 85/103 [00:00<00:00, 3539.32it/s, Materializing param=encoder.layer.4.output.dense.weight]Loading weights:  83%|████████▎ | 86/103 [00:00<00:00, 3574.43it/s, Materializing param=encoder.layer.5.attention.output.LayerNorm.bias]Loading weights:  83%|████████▎ | 86/103 [00:00<00:00, 3571.00it/s, Materializing param=encoder.layer.5.attention.output.LayerNorm.bias]Loading weights:  84%|████████▍ | 87/103 [00:00<00:00, 3605.17it/s, Materializing param=encoder.layer.5.attention.output.LayerNorm.weight]Loading weights:  84%|████████▍ | 87/103 [00:00<00:00, 3601.61it/s, Materializing param=encoder.layer.5.attention.output.LayerNorm.weight]Loading weights:  85%|████████▌ | 88/103 [00:00<00:00, 3635.76it/s, Materializing param=encoder.layer.5.attention.output.dense.bias]      Loading weights:  85%|████████▌ | 88/103 [00:00<00:00, 3632.33it/s, Materializing param=encoder.layer.5.attention.output.dense.bias]Loading weights:  86%|████████▋ | 89/103 [00:00<00:00, 3666.35it/s, Materializing param=encoder.layer.5.attention.output.dense.weight]Loading weights:  86%|████████▋ | 89/103 [00:00<00:00, 3662.72it/s, Materializing param=encoder.layer.5.attention.output.dense.weight]Loading weights:  87%|████████▋ | 90/103 [00:00<00:00, 3697.49it/s, Materializing param=encoder.layer.5.attention.self.key.bias]      Loading weights:  87%|████████▋ | 90/103 [00:00<00:00, 3694.12it/s, Materializing param=encoder.layer.5.attention.self.key.bias]Loading weights:  88%|████████▊ | 91/103 [00:00<00:00, 3724.67it/s, Materializing param=encoder.layer.5.attention.self.key.weight]Loading weights:  88%|████████▊ | 91/103 [00:00<00:00, 3721.15it/s, Materializing param=encoder.layer.5.attention.self.key.weight]Loading weights:  89%|████████▉ | 92/103 [00:00<00:00, 3755.45it/s, Materializing param=encoder.layer.5.attention.self.query.bias]Loading weights:  89%|████████▉ | 92/103 [00:00<00:00, 3751.76it/s, Materializing param=encoder.layer.5.attention.self.query.bias]Loading weights:  90%|█████████ | 93/103 [00:00<00:00, 3785.88it/s, Materializing param=encoder.layer.5.attention.self.query.weight]Loading weights:  90%|█████████ | 93/103 [00:00<00:00, 3782.35it/s, Materializing param=encoder.layer.5.attention.self.query.weight]Loading weights:  91%|█████████▏| 94/103 [00:00<00:00, 3816.47it/s, Materializing param=encoder.layer.5.attention.self.value.bias]  Loading weights:  91%|█████████▏| 94/103 [00:00<00:00, 3812.78it/s, Materializing param=encoder.layer.5.attention.self.value.bias]Loading weights:  92%|█████████▏| 95/103 [00:00<00:00, 3846.95it/s, Materializing param=encoder.layer.5.attention.self.value.weight]Loading weights:  92%|█████████▏| 95/103 [00:00<00:00, 3843.35it/s, Materializing param=encoder.layer.5.attention.self.value.weight]Loading weights:  93%|█████████▎| 96/103 [00:00<00:00, 3877.07it/s, Materializing param=encoder.layer.5.intermediate.dense.bias]    Loading weights:  93%|█████████▎| 96/103 [00:00<00:00, 3873.34it/s, Materializing param=encoder.layer.5.intermediate.dense.bias]Loading weights:  94%|█████████▍| 97/103 [00:00<00:00, 3907.34it/s, Materializing param=encoder.layer.5.intermediate.dense.weight]Loading weights:  94%|█████████▍| 97/103 [00:00<00:00, 3903.77it/s, Materializing param=encoder.layer.5.intermediate.dense.weight]Loading weights:  95%|█████████▌| 98/103 [00:00<00:00, 3937.79it/s, Materializing param=encoder.layer.5.output.LayerNorm.bias]    Loading weights:  95%|█████████▌| 98/103 [00:00<00:00, 3934.17it/s, Materializing param=encoder.layer.5.output.LayerNorm.bias]Loading weights:  96%|█████████▌| 99/103 [00:00<00:00, 3967.78it/s, Materializing param=encoder.layer.5.output.LayerNorm.weight]Loading weights:  96%|█████████▌| 99/103 [00:00<00:00, 3964.11it/s, Materializing param=encoder.layer.5.output.LayerNorm.weight]Loading weights:  97%|█████████▋| 100/103 [00:00<00:00, 3990.13it/s, Materializing param=encoder.layer.5.output.dense.bias]     Loading weights:  97%|█████████▋| 100/103 [00:00<00:00, 3985.81it/s, Materializing param=encoder.layer.5.output.dense.bias]Loading weights:  98%|█████████▊| 101/103 [00:00<00:00, 4013.35it/s, Materializing param=encoder.layer.5.output.dense.weight]Loading weights:  98%|█████████▊| 101/103 [00:00<00:00, 4008.75it/s, Materializing param=encoder.layer.5.output.dense.weight]Loading weights:  99%|█████████▉| 102/103 [00:00<00:00, 4039.92it/s, Materializing param=pooler.dense.bias]                  Loading weights:  99%|█████████▉| 102/103 [00:00<00:00, 4035.91it/s, Materializing param=pooler.dense.bias]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 4064.75it/s, Materializing param=pooler.dense.weight]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 4060.08it/s, Materializing param=pooler.dense.weight]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 4051.33it/s, Materializing param=pooler.dense.weight]
-BertModel LOAD REPORT from: sentence-transformers/all-MiniLM-L6-v2
-Key                     | Status     |  | 
-------------------------+------------+--+-
-embeddings.position_ids | UNEXPECTED |  | 
-
-Notes:
-- UNEXPECTED	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.
-    Assertiveness in the Context of Human Ri: 0.57
-    Developing Assertiveness Skills for Heal: 0.47
-    Assertiveness in the Workplace: 0.64
-    The Four Paths of Assertiveness: 0.64
-    Assertiveness at Work: 0.63
-  google_books: 4 books after filter
-  Returning top 4 books
-    - Assertiveness in the Workplace | 2025
-    - Assertiveness in the Context of Human Rights, Ethics, and Classical Virtues | 2024
-    - The Four Paths of Assertiveness | 2025
-    - Assertiveness at Work | 2021
-    Sources of Russian Foreign Policy Assert: 0.40
-    Assertiveness, Clarity, and Positivity i: 0.59
-    Assertiveness in Communication: 0.73
-    Assertiveness Code: 0.39
-    How to Grow Confidence, Assertiveness an: 0.65
-    Emotional Intelligence and Success - Mas: 0.53
-    Assertiveness Training: 0.71
-    Assertiveness Guide for Women: 0.70
-    Assertiveness: 0.73
-    Assertiveness: 0.73
-    Confidence and Assertiveness for Women: 0.76
-    Assertiveness with Friends Checklist: 0.48
-    [SPAM] Assertiveness for Women and Artisanal Cheese
-    Irresistible Assertiveness: 0.76
-    Assertiveness: 0.73
-    Assertiveness in Communication: 0.73
-    Assertiveness Code: 0.39
-    How to Grow Confidence, Assertiveness an: 0.65
-    Emotional Intelligence and Success - Mas: 0.53
-  open_library: 14 books after filter
-  Returning top 5 books
-    - Assertiveness, Clarity, and Positivity in Health Literacy | 2021
-    - Assertiveness Guide for Women | 2022
-    - Assertiveness in Communication | 2020
-    - How to Grow Confidence, Assertiveness and Self-Esteem and Effective Modern Communication Skills | 2020
-    - Emotional Intelligence and Success - Master Your Emotions, Reprogram Your Limiting Beliefs, Increase Your Self-Esteem, and Strengthen Your Assertiveness | 2021
-
-============================================================
-[4/20] Skill: team building
-============================================================
-    101 Team Building Exercises: 0.42
-    Team Building: 0.59
-    Design a Right-Minded, Team-Building Wor: 0.52
-    Success With Teamwork: 0.59
-  google_books: 3 books after filter
-  Returning top 3 books
-    - Design a Right-Minded, Team-Building Workshop | 2022
-    - Team Building | 2023
-    - Success With Teamwork | 2021
-    Building Virtual Project Teams: 0.47
-    Building Virtual Teams: 0.49
-    101 Team Building Exercises: 0.51
-    Power of a Clear Vision to Build Your Bu: 0.39
-    Right-Minded Teamwork in Any Team: 0.39
-    Building the Right Team: 0.45
-    Building the Modern Workplace with Share: 0.20
-    Blue Shark Team-Building: 0.39
-    Team Building: 0.65
-    Building Resilient Teams: 0.50
-    Legal Aspects of Building Green: 0.12
-    Building Brands on Purpose: 0.11
-    How to Facilitate Team Work Agreements: 0.40
-    75+Team Building Activities for Remote T: 0.53
-    Building Your Dream Team: 0.40
-    How to Build a Successful Sales Team: 0.28
-    Building a Purpose Driven Team: 0.51
-    Team Management : How to Reduce Stress a: 0.55
-    Fun Social Experiences for Kids : a Real: 0.54
-    Ways to Build a Successful Team : Strate: 0.49
-    Congratulations on Leaving Your Job With: 0.05
-    Clone Yourself Successfully : How to Bui: 0.30
-    Build Loyalty in a Team; Create a Positi: 0.35
-    Build a High Performance Team Fast: 0.41
-    Healthy Relationships = Healthy Team: 0.29
-    Team Builder Toolbox: 0.38
-    [SPAM] Practical Guide to Leverage Your Leadership Skills
-    Building Great Teams: 0.51
-    Team Relationship Code: 0.28
-    Team Building Strategies : Building, Gro: 0.65
-    Activities for Kids : Your Kids Will Lov: 0.48
-    Team Building: 0.65
-    DISC - Remote Team Training Workbook: 0.27
-    Team Success: 0.40
-    Building Better Communications in Teams: 0.41
-    Guide to the NFL Draft : Help You Apprec: 0.21
-    Workshop Culture : Guide Building Teams: 0.44
-    Success with Teamwork : Team Building Im: 0.59
-    Computer Science Essentials Building Aut: 0.08
-    Building Culture: 0.25
-  open_library: 11 books after filter
-  Returning top 5 books
-    - 101 Team Building Exercises | 2020
-    - Team Building | 2021
-    - Building Resilient Teams | 2022
-    - 75+Team Building Activities for Remote Teams | 2020
-    - Building a Purpose Driven Team | 2021
-
-============================================================
-[5/20] Skill: hand gestures
-============================================================
-    Beginners Guide to Hand Gestures: 0.67
-    Hand Gesture Recognition for Dumb and Bl: 0.43
-  google_books: 1 books after filter
-  Returning top 1 books
-    - Beginners Guide to Hand Gestures | 2023
-    Hasta Mudras - Hand Gestures: 0.49
-    Symbiotic Symbolization by Hand and Mout: 0.49
-    Crafting Expressive Art with Hand Gestur: 0.45
-    Healing Power of Mudras : a Comprehensiv: 0.45
-    Essential Chakra Awakening : 19 Hand Ges: 0.31
-    Little Hands, Big Gestures: 0.59
-    Hand Gesture Recognition for Dumb and Bl: 0.48
-    How to Understand Italian Gestures: 0.55
-    Mudras for Healthy Life : Mudras -Learn : 0.45
-    Hand Mudras for Health and Healing : Mud: 0.51
-    Challenges and Applications for Hand Ges: 0.47
-  open_library: 3 books after filter
-  Returning top 3 books
-    - Little Hands, Big Gestures | 2023
-    - Hand Mudras for Health and Healing : Mudras- Meaning of Sacred Hand Gestures | 2021
-    - How to Understand Italian Gestures | 2022
-
-============================================================
-[6/20] Skill: communication
-============================================================
-    Communication Skills in Nursing, Health : 0.52
-    Improving Communication in Mental Health: 0.39
-    Effective Communication for Nursing Prac: 0.45
-    A Philosopher Looks at Digital Communica: 0.48
-    Professional Communication: 0.44
-  google_books: 1 books after filter
-  Returning top 1 books
-    - Communication Skills in Nursing, Health and Social Care | 2020
-    Working Backwards: 0.08
-    Curbing Traffic: 0.07
-    The Madman's Library: 0.07
-    Bookseller at the End of the World: 0.03
-    How We Show Up: 0.22
-    The Skin We're In: 0.10
-    You're Not Listening: 0.21
-    The Address Book: 0.05
-    Let's Talk About Hard Things: 0.12
-    Everything Is Beautiful, and I'm Not Afr: 0.10
-    The Five-Star Review: 0.04
-    A World Without Email: 0.34
-    Couples Therapy Workbook : Essential Ski: 0.33
-    Mass Communication: 0.52
-    Collection Management in Sci-Tech Librar: 0.07
-    Robotic Process Automation: 0.06
-    Integrated Marketing Communications: 0.40
-    Young Activists and the Public Library: 0.10
-    Sustainable Road Freight: 0.10
-    The Design Thinking Toolbox: 0.16
-    Gallery of Clouds: 0.07
-    Oxford Handbook of Latin Palaeography: 0.03
-    Right of Way: 0.02
-    Body Language of Politics: 0.43
-    The challenge of the Common Market. --: 0.16
-    Case in Point 11: 0.02
-    Communicating About Health: 0.38
-    Otherlands: 0.11
-    I Never Thought of It That Way: 0.12
-    End of Policing: 0.06
-    Genres of Listening: 0.24
-    Madman Theory: 0.05
-    We Keep Us Safe: 0.11
-    Communication Research? : ASKING QUESTIO: 0.53
-    You're Not Listening: 0.21
-    The Address Book: 0.05
-    Let's Talk About Hard Things: 0.12
-    Everything Is Beautiful, and I'm Not Afr: 0.10
-    The Five-Star Review: 0.04
-  open_library: 2 books after filter
-  Returning top 2 books
-    - Mass Communication | 2020
-    - Communication Research? : ASKING QUESTIONS : FINDING ANSWERS Ional Experien | 2022
-
-============================================================
-[7/20] Skill: personal development
-============================================================
-    Self-improvement for Happiness: 0.74
-    Self-help & Personal Development: 0.62
-    Coach Myself Happy: 0.40
-    Personal Development: 0.71
-  google_books: 3 books after filter
-  Returning top 3 books
-    - Self-help & Personal Development | 2024
-    - Personal Development | 2024
-    - Self-improvement for Happiness | 2020
-    A Gentle Reminder: 0.10
-    Igniting Success: 0.12
-    Do Epic Shit: 0.15
-    Workbook for the Mountain Is You: 0.11
-    You're Too Good to Feel This Bad: -0.01
-    3am Questions: 0.04
-    Development Tip: 0.34
-    Practical Career Advice for Engineers: 0.28
-    Happy Camper : Gratitude Journals - 6 X : 0.21
-    Life Enjoy the Journey : Gratitude Journ: 0.22
-    Not a Day over Fabulous : Gratitude Jour: 0.21
-    Growing up Resilient: 0.42
-    Understanding Character Education and Pe: 0.59
-    10 Strategies to Personal Development: 0.75
-    Lifestyle for Total Development: 0.50
-    Handbook for Personal Development: 0.67
-    All We Can Do Is Keep Breathing : Gratit: 0.19
-    Be Kind : Gratitude Journals - 6 X 9 Per: 0.24
-    Achieving Holistic Personal Development : 0.76
-    Not a Day over Fabulous : Gratitude Jour: 0.20
-    Miracle Gratitude My Little Journal - N°: 0.26
-    Personal Development Strategy : Personal: 0.74
-    Projection and Personality Development V: 0.46
-    Men and Women in Personal Development: 0.61
-    Individuals As Producers of Their Own De: 0.57
-    Biblical Studies Workbook : a Personal W: 0.20
-    Personal Development. How to Cooperate w: 0.58
-    Emotional Intelligence for Leadership - : 0.40
-    Power of Personal Development,law of Att: 0.50
-    Personal Development Mastery 2 Books In : 0.64
-    Continuous Learning & Personal Developme: 0.63
-    Fruits of the Harvest Ministries a Cours: 0.59
-    Personal Development Planning: 0.66
-    Value of Virtue : Work Hard Dream Big. Y: 0.50
-    My Personal Development This Year: 0.53
-    Way of Life : Increasing Happiness Throu: 0.47
-    How to Find Where You Are in Life : Lear: 0.67
-    Enneagram : Discover Your Personality Ty: 0.38
-    Guide for Personal Trainers : System for: 0.33
-    Not a Day over Fabulous : Gratitude Jour: 0.21
-  open_library: 16 books after filter
-  Returning top 5 books
-    - Understanding Character Education and Personal Development | 2021
-    - 10 Strategies to Personal Development | 2021
-    - Individuals As Producers of Their Own Development | 2021
-    - Handbook for Personal Development | 2021
-    - Lifestyle for Total Development | 2021
-
-============================================================
-[8/20] Skill: communication principles
-============================================================
-    Communication Engineering Principles: 0.33
-    Principles of Strategic Communication: 0.43
-    Communication Wisdom: 0.58
-  google_books: 1 books after filter
-  Returning top 1 books
-    - Communication Wisdom | 2025
-    Mass Communication: 0.40
-    Principles of Communication Engineering: 0.65
-    Understanding Communications Systems Pri: 0.61
-    Environmental Risk Communication: 0.28
-    Revel Access Card for Communication: 0.24
-    Community Risk Reduction Principles and : 0.26
-    Principles for Overcoming Communication : 0.47
-    Practical Principles for Leadership: 0.48
-    Keys to Effective Communication in Marri: 0.48
-    Principles of Tai Chi and Cross-Cultural: 0.43
-    Communication Principles for Data Scienc: 0.58
-    Principles of Communication: 0.78
-    Principles and Practices of Wireless Com: 0.60
-    Principles of Communication: 0.78
-    Parenting Strategies : Improve Communica: 0.44
-    Healthy Parenting Tips : Messages of Lov: 0.38
-    Simple Principles for Making Your Love W: 0.44
-    Principles of Public Health: 0.39
-    Principles of Blended Learning: 0.30
-    Community Organizing Principles : Higher: 0.37
-    Principles of Communication: 0.78
-    How Communication Design Works: 0.48
-    Principles of Mobile Computing and Commu: 0.50
-    Principles of Electronic Communication S: 0.55
-    Experiments Manl for Principles of Elect: 0.19
-    Revel for Communication: 0.36
-    Principles of Image Printing Technology: 0.17
-    Self Help for Women : 3 Books in 1 : Sel: 0.29
-    Principles of Communism: 0.37
-    Principles and Practices in Augmentative: 0.57
-    Loose Leaf for Principles of Electronic : 0.48
-    Principles of Communism: 0.37
-    Sustainability Communication Across Asia: 0.29
-    Community Health and Wellness : Principl: 0.19
-    Principles for Building a Strong Marriag: 0.51
-    It's Your Life, Enjoy It! Practices and : 0.33
-    Collective and Group Communication Betwe: 0.50
-    Seven Principles: 0.49
-    Scientific and Practical Principles of D: 0.21
-    Coherent Optical Wireless Communication : 0.24
-  open_library: 10 books after filter
-  Returning top 5 books
-    - Understanding Communications Systems Principles--A Tutorial Approach | 2021
-    - Principles of Communication | 2023
-    - Principles of Communication Engineering | 2021
-    - Principles of Communication | 2023
-    - Principles of Communication | 2020
-
-============================================================
-[9/20] Skill: personal directing styles
-============================================================
-  google_books: 0 books after filter
-  Returning top 0 books
-    (no books passed filters)
-  open_library: 0 books after filter
-  Returning top 0 books
-    (no books passed filters)
-
-============================================================
-[10/20] Skill: curriculum objectives
-============================================================
-    Let Me Be Five: 0.41
-    The National Curriculum Outdoors: KS1: 0.53
-    The National Curriculum Outdoors: Year 5: 0.51
-    The National Curriculum Outdoors: Year 3: 0.49
-    The National Curriculum Outdoors: Year 6: 0.52
-  google_books: 3 books after filter
-  Returning top 3 books
-    - The National Curriculum Outdoors: KS1 | 2020
-    - The National Curriculum Outdoors: Year 5 | 2020
-    - The National Curriculum Outdoors: Year 6 | 2020
-    Developmentally Appropriate Curriculum a: 0.60
-  open_library: 1 books after filter
-  Returning top 1 books
-    - Developmentally Appropriate Curriculum and Instruction | 2021
-
-============================================================
-[11/20] Skill: music therapy schools
-============================================================
-    Addressing Issues of Mental Health in Sc: 0.69
-    The Oxford Handbook of Special Music Edu: 0.82
-    The Impact of Music Therapy on Children : 0.67
-    Contemporary Issues in Music Therapy Tra: 0.84
-  google_books: 4 books after filter
-  Returning top 4 books
-    - Addressing Issues of Mental Health in Schools through the Arts | 2021
-    - The Oxford Handbook of Special Music Education and Music Therapy | 2025
-    - Contemporary Issues in Music Therapy Training | 2024
-    - The Impact of Music Therapy on Children in a Multicultural Elementary School | 2022
-    Addressing Issues of Mental Health in Sc: 0.51
-    Impact of Music Therapy on Children in a: 0.83
-  open_library: 2 books after filter
-  Returning top 2 books
-    - Addressing Issues of Mental Health in Schools Through the Arts | 2021
-    - Impact of Music Therapy on Children in a Multicultural Elementary School | 2023
-
-============================================================
-[12/20] Skill: curriculum standards
-============================================================
-    The National Curriculum and the Teachers: 0.75
-    The National Curriculum and the Teachers: 0.58
-    The National Curriculum and the Teachers: 0.58
-    The Teachers′ Standards in the Classroom: 0.65
-  google_books: 4 books after filter
-  Returning top 4 books
-    - The National Curriculum and the Teachers′ Standards | 2023
-    - The National Curriculum and the Teachers′ Standards | 2023
-    - The National Curriculum and the Teachers′ Standards | 2023
-    - The Teachers′ Standards in the Classroom | 2023
-    National Curriculum and the Teachers&#82: 0.79
-    Leading Standards-Based Learning: 0.51
-    [SPAM] Achieve! Student Book 1 a Complete English Course 
-    Algebra I Project-Based Curriculum: 0.48
-    How Do Teachers in Secondary Vocational : 0.57
-    Research on Teaching Strategies of Junio: 0.41
-    Mathematics Instruction and Tasks in a P: 0.44
-    Master Reilly's Curriculum: 0.58
-    Taekwondo Student Handbook Curriculum Li: 0.39
-    Responsible Money a Standard-Based Finan: 0.49
-    Beyond Standards: 0.40
-    Forward Mathematics Florida B.E.S.T. Sta: 0.51
-    Forward Mathematics Florida B.E.S.T. Sta: 0.57
-    Next Generation Florida Science Standard: 0.54
-    Forward Mathematics Florida B.E.S.T. Sta: 0.57
-    Forward Mathematics Florida B.E.S.T. Sta: 0.58
-    Forward Mathematics Florida B.E.S.T. Sta: 0.58
-    Forward Mathematics Florida B.E.S.T Stan: 0.57
-    Forward Mathematics Florida B.E.S.T. Sta: 0.58
-    Forward Mathematics Florida B.E.S.T. Sta: 0.58
-    Responsible Money a Standards-Based Fina: 0.54
-    Construction of Efficient Chinese Class : 0.40
-    Research on High School Mathematics Teac: 0.49
-    Research on the Cognitive Principle of A: 0.32
-    Research on the Chinese Test Questions i: 0.37
-    CAIA Curriculum Level I 2025: 0.59
-    Forward Mathematics Florida B.E.S.T. Sta: 0.59
-    2026 CFA Curriculum Level III, Volume 5: 0.55
-    Forward Mathematics Florida B.E.S.T. Sta: 0.60
-  open_library: 18 books after filter
-  Returning top 5 books
-    - National Curriculum and the Teachers&#8242; Standards | 2021
-    - Leading Standards-Based Learning | 2020
-    - CAIA Curriculum Level I 2025 | 2024
-    - How Do Teachers in Secondary Vocational School Reflect after Class under the New Curriculum Standards | 2022
-    - Responsible Money a Standards-Based Financial Curriculum | 2022
-
-============================================================
-[13/20] Skill: metrology
-============================================================
-    Metrology and Instrumentation: 0.65
-    Optical Metrology for Precision Engineer: 0.57
-    Advanced Mathematical And Computational : 0.64
-    Introduction to Statistics in Metrology: 0.52
-    Introduction to Optical Metrology: 0.54
-  google_books: 5 books after filter
-  Returning top 5 books
-    - Metrology and Instrumentation | 2021
-    - Introduction to Optical Metrology | 2025
-    - Optical Metrology for Precision Engineering | 2021
-    - Introduction to Statistics in Metrology | 2020
-    - Advanced Mathematical And Computational Tools In Metrology And Testing Xiii | 2024
-    Applications and Metrology at Nanometer : 0.56
-    Economics and Science of Measurement: 0.50
-    Optical Metrology for Precision Engineer: 0.61
-    Characterization, Testing, Measurement, : 0.78
-    Metrology and Instrumentation: 0.68
-    Thermal Metrology: 0.53
-    Metrology in Urban Drainage: 0.45
-    2021 IEEE International Workshop on Metr: 0.40
-    Metrology for 5G and Emerging Wireless T: 0.49
-    Principles of Materials Characterization: 0.57
-    Applications and Metrology at Nanometer-: 0.54
-    Practical Guide to Surface Metrology: 0.60
-    2021 IEEE International Workshop on Metr: 0.60
-    2021 IEEE International Workshop on Metr: 0.60
-    Handbook of Optical Dimensional Metrolog: 0.58
-    [SPAM] 2021 IEEE 8th International Workshop on Metrology 
-    2022 IEEE International Workshop on Metr: 0.45
-    22FTM07, Finding the Right Task for Opti: 0.44
-    Product Safety and Metrology (Amendment : 0.39
-    2022 XXXII International Scientific Symp: 0.67
-    2023 IEEE International Workshop on Metr: 0.61
-    Models, Measurement, and Metrology Exten: 0.55
-    Handbook of Metrology and Applications: 0.61
-    2023 IEEE International Workshop on Metr: 0.41
-    2023 IEEE International Workshop on Metr: 0.41
-    [SPAM] 2023 IEEE 10th International Workshop on Metrology
-    2023 4th International Conference on Sma: 0.35
-    2022 IEEE International Conference on Me: 0.50
-    Product Safety and Metrology (Amendment : 0.39
-    2022 IEEE Workshop on Metrology for Agri: 0.53
-    2022 IEEE International Conference on Me: 0.50
-    Engineering Metrology: 0.70
-    Ancient Metrology: 0.60
-    2023 IEEE International Workshop on Metr: 0.53
-    Full Field Optical Metrology Applicati: 0.44
-    Engineering Metrology for Pedestrian Fal: 0.35
-    Product Safety and Metrology etc. (Amend: 0.33
-    Quantum Metrology Photoelectrons Vol. Hb: 0.29
-  open_library: 19 books after filter
-  Returning top 5 books
-    - Characterization, Testing, Measurement, and Metrology | 2020
-    - Applications and Metrology at Nanometer-Scale 2 | 2021
-    - Principles of Materials Characterization and Metrology | 2021
-    - Handbook of Metrology and Applications | 2023
-    - Practical Guide to Surface Metrology | 2020
-
-============================================================
-[14/20] Skill: community education
-============================================================
-  google_books: 0 books after filter
-  Returning top 0 books
-    (no books passed filters)
-    Creating entrepreneurial community colle: 0.42
-    Communicating Social Justice in Teacher : 0.40
-    Marginalised Communities in Higher Educa: 0.50
-    How to Heal Gangs : Transformation of a : 0.24
-    Community Building Circles Cheat Sheet: 0.28
-    New Communication in the Post-Pandemic E: 0.05
-    Corpus Linguistics and Cross-Disciplinar: 0.12
-    Community Sport and Social Inclusion: 0.37
-    Community College Students in Hong Kong: 0.33
-    Communicating Social Justice in Teacher : 0.40
-    Community Building in the Online Classro: 0.59
-    Advances in Family-School-community Part: 0.48
-    Establishing an Experimental Community C: 0.50
-    Social Haunting, Education, and the Work: 0.36
-    Creating Transformative Online Communiti: 0.46
-    Education, Communication and Democracy i: 0.38
-    Democracy, Social Justice, and the Ameri: 0.44
-    Social Justice and Community College Edu: 0.53
-    Food Information, Communication and Educ: 0.29
-    Perception of Employer Branding in Relat: 0.07
-    [SPAM] Sadiq and the Community Garden
-    International Journal of Information and: 0.24
-    Community Service Programs in Independen: 0.59
-    Basic Communication and Assessment Prere: 0.37
-    Critical Perspectives on Education Polic: 0.49
-    Community Building Circles Cheat Sheet: 0.28
-    New Communication in the Post-Pandemic E: 0.05
-    Corpus Linguistics and Cross-Disciplinar: 0.12
-    Community Sport and Social Inclusion: 0.37
-    Community College Students in Hong Kong: 0.33
-    Communicating Social Justice in Teacher : 0.40
-    Community Building in the Online Classro: 0.59
-    Advances in Family-School-community Part: 0.48
-  open_library: 6 books after filter
-  Returning top 5 books
-    - Community Building in the Online Classroom | 2021
-    - Community Service Programs in Independent Schools (1994) | 2021
-    - Community Building in the Online Classroom | 2021
-    - Marginalised Communities in Higher Education | 2021
-    - Establishing an Experimental Community College in the United States | 2021
-
-============================================================
-[15/20] Skill: scientific research methodology
-============================================================
-    Research Methodology for Scientific Rese: 0.43
-    Scientific Research Methodology: 0.35
-    A Guide to Research Methodology for Begi: 0.44
-    Principles of Social Research Methodolog: 0.42
-    Foundation of Research Methodology: A Co: 0.53
-    Glossary of Research Methodology: 0.39
-  google_books: 1 books after filter
-  Returning top 1 books
-    - Foundation of Research Methodology: A Comprehensive Guide | 2023
-    Success and Creativity in Scientific Res: 0.47
-    Routledge Handbook of Scientific Communi: 0.34
-    The Scientific Method in Forensic Scienc: 0.54
-    Methodology for Early Childhood Educatio: 0.39
-    Elements and Methodologies for Accomplis: 0.67
-    How to Write and Publish a Scientific Pa: 0.31
-    Research Methodology and Scientific Writ: 0.65
-    Mapping Scientific Method: 0.46
-    Methodological Prospects for Scientific : 0.67
-    Problematic Research Practices and Inert: 0.49
-    Scientific Thought and Research Methodol: 0.56
-    Fundamental Research Methodologies When : 0.57
-    Fundamental Research Methodologies When : 0.57
-  open_library: 7 books after filter
-  Returning top 5 books
-    - The Scientific Method in Forensic Science | 2020
-    - Scientific Thought and Research Methodology [Standard Color] | 2025
-    - Fundamental Research Methodologies When Studying Political Science | 2025
-    - Fundamental Research Methodologies When Studying Political Science | 2025
-    - Research Methodology and Scientific Writing | 2021
-
-============================================================
-[16/20] Skill: cybernetics
-============================================================
-    Cybernetics of Art: 0.39
-    How We Became Posthuman: 0.32
-    Systems, Cybernetics, Control, and Autom: 0.62
-    An Introduction to Cybernetic Synergy: 0.69
-  google_books: 2 books after filter
-  Returning top 2 books
-    - Systems, Cybernetics, Control, and Automation | 2022
-    - An Introduction to Cybernetic Synergy | 2021
-    Informatics and Cybernetics in Intellige: 0.57
-    Agricultural Cybernetics: 0.51
-    2020 International Conference on Machine: 0.44
-    Cybernetic Architectures: 0.61
-    Community Cybernetics: 0.60
-    Cybernetics of the Poor: 0.58
-    2022 International Conference on Machine: 0.44
-    2022 IEEE International Conference on Sy: 0.44
-    2022 Cybernetics and Informatics (K&I): 0.50
-    2022 IEEE 10th Jubilee International Con: 0.45
-    2022 Cybernetics and Informatics (K&I): 0.50
-    2022 Cybernetics and Informatics (K&I): 0.50
-    2022 IEEE 4th International Conference o: 0.44
-    2022 4th International Conference on Cyb: 0.46
-    2023 15th International Conference on In: 0.42
-    2023 5th International Conference on Cyb: 0.46
-    2023 IEEE International Conference on Cy: 0.37
-    2023 IEEE 5th International Conference o: 0.45
-    Systems, Cybernetics, Control, and Autom: 0.69
-    2023 IEEE International Conference on Cy: 0.44
-    Cybernetics and the Origin of Informatio: 0.65
-    Networks and Systems in Cybernetics: 0.66
-    Transdisciplinary Introduction to the Wo: 0.65
-    2023 IEEE International Conference on Sy: 0.44
-    2023 3rd International Conference on Int: 0.46
-    Cybernetics of Art: 0.52
-    2021 3rd International Conference on Cyb: 0.45
-    2021 IEEE International Conference on Sy: 0.43
-    International Journal of Applied Evoluti: 0.07
-    International Journal of Swarm Intellige: 0.20
-    Cybernetics Perspectives in Systems: 0.74
-    2022 International Conference on Cyberne: 0.49
-    Advanced, Automated and Electric Vehicle: 0.18
-    Recent Advances in Soft Computing and Cy: 0.37
-    International Journal of Knowledge and S: 0.22
-    International Journal of Swarm Intellige: 0.21
-    2021 13th International Conference on In: 0.41
-    Cybernetics 2. 0: 0.54
-    2021 International Conference on Intelli: 0.44
-    [SPAM] Complex Systems : Spanning Control and Computation
-  open_library: 15 books after filter
-  Returning top 5 books
-    - Cybernetic Architectures | 2021
-    - Community Cybernetics | 2022
-    - Systems, Cybernetics, Control, and Automation | 2023
-    - Cybernetics of the Poor | 2021
-    - Transdisciplinary Introduction to the World of Cybernetics | 2023
-
-============================================================
-[17/20] Skill: sex education
-============================================================
-    Empowering Relationships and Sex Educati: 0.60
-    The Sex Education Debates: 0.63
-    Sex-education: 0.77
-    Providing Relationships and Sex Educatio: 0.60
-  google_books: 4 books after filter
-  Returning top 4 books
-    - Empowering Relationships and Sex Education | 2024
-    - The Sex Education Debates | 2024
-    - Providing Relationships and Sex Education for Special Learners | 2021
-    - Sex-education | 2023
-    Sex Ed for Grown-Ups: 0.65
-    Where Does The Trombone Go?: 0.02
-    Teaching about Sex and Sexualities in Hi: 0.73
-    Dangerous Ideas on Campus: 0.14
-    Providing Relationships and Sex Educatio: 0.68
-    Sex Education : the Road Trip: 0.73
-    Gender and Education in England Since 17: 0.36
-    What Is Sex?: 0.50
-    Gender Equity in Stem in Higher Educatio: 0.30
-    Transformation of American Sex Education: 0.66
-    My Life Is Not Your Porn: 0.14
-    Birthday Suit Book 1: 0.06
-    The Gender-Sensitive University: 0.32
-    Sex Education : a Guide to Life: 0.81
-    Sex Education: 0.78
-    Teaching Moral Sex: 0.57
-    Revolutionary Struggles and Girls' Educa: 0.33
-    Complete PSHE Programme for KS4: 0.00
-    Against Sex Education: 0.75
-    Empowered Women: 0.26
-    How to Talk to Your Teen about Sex : Sex: 0.55
-    Tell Me about Sex Grandma: 0.37
-    Kamasutra Sex Positions Book for Couples: 0.46
-    Sex Education: 0.78
-    Sex Education and Sexual Health : Teachi: 0.72
-    Sex God's Way: 0.45
-    Sex Education for Teens : Teen Sex Life: 0.68
-    Cal Bowman Sex Education: 0.62
-    Sex Education for Teens; a Parent's Guid: 0.70
-    Untouchables Sex Education: 0.65
-    Sex Health Education for Teenagers: 0.67
-    Knocking Boys Out Cold: 0.05
-    Parents Guide to Sex Education for 8-12 : 0.66
-    Sex Education for Boys and Girls: 0.74
-    Sex Coloring Book: 0.37
-    Sex Education for Teens: 0.73
-    Guide on Sex Education and Sexual Intell: 0.75
-    Sexual Health Education for Teenagers: 0.64
-  open_library: 22 books after filter
-  Returning top 5 books
-    - Sex Ed for Grown-Ups | 2021
-    - Transformation of American Sex Education | 2022
-    - Providing Relationships and Sex Education for Special Learners | 2021
-    - Against Sex Education | 2021
-    - Sex Education : a Guide to Life | 2022
-
-============================================================
-[18/20] Skill: instructional design models
-============================================================
-    Survey of Instructional Design Models: 0.85
-    Trends and Issues in Instructional Desig: 0.57
-    Designing for Modern Learning: 0.54
-    The Impact and Importance of Instruction: 0.76
-  google_books: 4 books after filter
-  Returning top 4 books
-    - Survey of Instructional Design Models | 2023
-    - Trends and Issues in Instructional Design and Technology | 2024
-    - The Impact and Importance of Instructional Design in the Educational Landscape | 2023
-    - Designing for Modern Learning | 2020
-    Merging the Instructional Design Process: 0.61
-    Survey of Instructional Design Models: 0.80
-    [SPAM] Tunisian Crochet Model : Modern Design and Simple 
-    4C-ID Model and Cognitive Approaches to : 0.55
-  open_library: 3 books after filter
-  Returning top 3 books
-    - 4C-ID Model and Cognitive Approaches to Instructional Design and Technology | 2020
-    - Merging the Instructional Design Process with Learner-Centered Theory | 2020
-    - Survey of Instructional Design Models | 2022
-
-============================================================
-[19/20] Skill: e-learning
-============================================================
-    Everything E-Learning: 0.67
-    Challenges and Opportunities for the Glo: 0.69
-  google_books: 2 books after filter
-  Returning top 2 books
-    - Everything E-Learning | 2025
-    - Challenges and Opportunities for the Global Implementation of E-Learning Frameworks | 2021
-    E-Learning Impact During COVID-19: 0.56
-    Little E: 0.23
-    Advances in Research, Theory and Practic: 0.54
-    Teaching as if Learning Matters: 0.45
-    Challenges and Opportunities for the Glo: 0.63
-    Learning in Public: 0.48
-    Handbook of Deep Learning in Biomedical : 0.03
-    Machine Learning in Clinical Neuroscienc: 0.14
-    [SPAM] Bio-Principles, 1e WileyPLUS Learning Space Card
-    Experiential Learning in Geography: 0.40
-    Tool for Determining e-Learning Readines: 0.58
-    Ladybird Readers Beginner Level - Thomas: 0.18
-    Text As Data: 0.06
-    [SPAM] Kids' Adventures With E.T. Friends in Space
-    Learning to Use Evaluation in the Black : 0.17
-    [SPAM] Journey into Open Science and Research Transparenc
-    Characteristics of Effective Early Learn: 0.41
-    Learning-Oriented Assessment in Language: 0.36
-    Aptitude, Learning and Instruction: 0.32
-    Beginner's Guide to Sumi-E: 0.17
-    E-Learning Methodologies: 0.76
-    Enriching e Learning Management for Glob: 0.66
-    Learning to Put the FUN in Dysfunctional: 0.26
-    Note Taking Activities in e-Learning Env: 0.52
-    Advances in Software Engineering, Educat: 0.67
-    E-Learning in Motion: 0.63
-    Smart Phone e-Learning How Persuades Stu: 0.62
-    TABE 11 and 12 Student Math Manual and P: 0.33
-    TABE 11 and 12 Consumable Student Math W: 0.28
-    Aptitude, Learning, and Instruction : Vo: 0.30
-    e-Learning Strategy: 0.76
-    Tool for Determining e-Learning Readines: 0.58
-    Ladybird Readers Beginner Level - Thomas: 0.18
-    Text As Data: 0.06
-    [SPAM] Kids' Adventures With E.T. Friends in Space
-    Learning to Use Evaluation in the Black : 0.17
-    [SPAM] Journey into Open Science and Research Transparenc
-    Characteristics of Effective Early Learn: 0.41
-    Learning-Oriented Assessment in Language: 0.36
-    Aptitude, Learning and Instruction: 0.32
-  open_library: 12 books after filter
-  Returning top 5 books
-    - Challenges and Opportunities for the Global Implementation of E-Learning Frameworks | 2021
-    - Advances in Research, Theory and Practice in Work-Integrated Learning | 2021
-    - Enriching e Learning Management for Global Education | 2020
-    - E-Learning in Motion | 2020
-    - E-Learning Impact During COVID-19 | 2021
-
-============================================================
-[20/20] Skill: assessment processes
-============================================================
-  google_books: 0 books after filter
-  Returning top 0 books
-    (no books passed filters)
-    Systems and Signal Processing of Capnogr: 0.14
-    Mastering the Assessment Center Process: 0.66
-    Assessment As a Catalyst for Learning: 0.66
-    Assessment of State Voting Processes: 0.38
-    Human Information Processing in Speech Q: 0.32
-    Student-Focused Learning and Assessment: 0.56
-    AUDITORY PROCESSING and WORD RETRIEVAL W: 0.31
-    Data Ebook : Better Understand the Asses: 0.65
-    Holistic Assessment of Process Mining in: 0.39
-    Extremes in Atmospheric Processes and Ph: -0.05
-    Microbiological Risk Assessment Associat: 0.09
-    Science Subject-Specific Teacher Assessm: 0.61
-    Essentials of Processing Assessment, 3rd: 0.60
-    Student Self-Assessment As a Process for: 0.72
-    Dynamic Risk Assessment for Sustainabili: 0.24
-    Educational Design Process : Gap Analysi: 0.49
-    Historical Assessment of Leadership in T: 0.22
-    CIA Analysis and Assessment of Gateway P: 0.23
-    Advancing Natural Language Processing in: 0.56
-    Dynamic Risk Assessment and Management o: 0.22
-    Towards Sustainable Chemical Processes: 0.13
-    Application of Artificial Intelligence t: 0.51
-    Electropalatography for Speech Assessmen: 0.23
-  open_library: 9 books after filter
-  Returning top 5 books
-    - Student-Focused Learning and Assessment | 2020
-    - Assessment As a Catalyst for Learning | 2021
-    - Science Subject-Specific Teacher Assessment Process | 2022
-    - Advancing Natural Language Processing in Educational Assessment | 2023
-    - Application of Artificial Intelligence to Assessment (HC) | 2020
