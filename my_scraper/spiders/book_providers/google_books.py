@@ -124,8 +124,10 @@ class GoogleBooksClient:
                     "language_code": volume_info.get("language"),
                     "publisher": volume_info.get("publisher"),
                     "published_year": year,
+                    "page_count": volume_info.get("pageCount"),
                     "average_rating": volume_info.get("averageRating"),
                     "ratings_count": volume_info.get("ratingsCount"),
+                    "thumbnail": volume_info.get("imageLinks", {}).get("thumbnail"),
                     "semantic_relevance_score": None,  # To be filled later if needed
                     "metadata": item,
                 }

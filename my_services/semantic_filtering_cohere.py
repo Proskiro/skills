@@ -46,37 +46,39 @@ def rerank_books_for_skill(
 ) -> list[tuple[Dict, float]]:
     """
     Rerank books for a professional skill using Cohere's rerank API.
-    
+
     This approach is better than embedding similarity because:
     - It allows rich domain context in the query
     - Single API call for all books
     - Model is specifically trained for relevance ranking
-    
+
     Args:
         skill: Skill dict with 'title' and optionally 'description'
         books: List of book dicts with 'title' and optionally 'description'
         profession_title: Optional profession context (e.g., "Data Scientist")
         top_n: Number of top results to return
-        
+
     Returns:
         List of (book, relevance_score) tuples, sorted by relevance
     """
     if not books:
         return []
-    
+
     co = get_cohere_client()
 
     if occupation_title := skill.get("occupation_title"):
         query = (
             f"A {occupation_title} needs to learn: {skill['title']}. "
             f"{skill['description']} "
-            f"Find practical books for professional development, not academic textbooks."
+            f"Find practical books for professional development and self-improvement. "
+            f"Not fiction, not children's books, not academic theory textbooks."
         )
     else:
         query = (
             f"Professional skill to develop: {skill['title']}. "
             f"{skill['description']} "
-            f"Find practical books for workplace learning."
+            f"Find practical books for workplace learning and career growth. "
+            f"Not fiction, not children's books, not purely academic."
         )
 
     documents = [f"{b.get('title', '')}: {b.get('description', '')}" for b in books]

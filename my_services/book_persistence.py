@@ -42,6 +42,7 @@ def upsert_book(conn, book):
                 published_year,
                 language_code,
                 description,
+                thumbnail,
                 source,
                 created_at,
                 updated_at
@@ -54,6 +55,7 @@ def upsert_book(conn, book):
                 %(published_year)s,
                 %(language_code)s,
                 %(description)s,
+                %(thumbnail)s,
                 %(source)s,
                 NOW(),
                 NOW()
