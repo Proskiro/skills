@@ -53,10 +53,30 @@ class GoogleBooksClient:
         last_response.raise_for_status()
         return last_response  # not reached
 
+    def get_total_results(self, query: str) -> int:
+        """Get total number of books matching a query (without fetching results).
+
+        Useful as a popularity signal for skills.
+        """
+        params = {
+            "q": query,
+            "maxResults": 1,  # Minimal fetch, we only want totalItems
+            "key": os.getenv("GOOGLE_BOOKS_API_KEY"),
+        }
+
+        response = self._get_with_backoff(params)
+        data = response.json()
+        return data.get("totalItems", 0)
+
     def search(self, query, max_results=40):
-        """Search for books using Google Books API."""
+        """Search for books using Google Books API.
+
+        Returns:
+            tuple: (list of book dicts, total_items count from API)
+        """
         results = []
         start_index = 0
+        total_items = 0
 
         while len(results) < max_results:
             params = {
@@ -73,6 +93,10 @@ class GoogleBooksClient:
             data = response.json()
             items = data.get("items", [])
 
+            # Capture total on first request
+            if start_index == 0:
+                total_items = data.get("totalItems", 0)
+
             if not items:
                 break
 
@@ -83,7 +107,7 @@ class GoogleBooksClient:
             if start_index >= data.get("totalItems", 0):
                 break
 
-        return results
+        return results, total_items
 
     def _parse_results(self, data):
         """Convert API JSON into simple Python dicts."""
