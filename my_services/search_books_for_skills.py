@@ -30,7 +30,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 
 from my_scraper.spiders.book_providers.google_books import GoogleBooksClient
-from my_scraper.spiders.book_providers.open_library import OpenLibraryClient
 from my_services.book_persistence import (
     link_book_to_skill,
     upsert_book,
@@ -52,28 +51,29 @@ def set_semantic_model(model: str):
 
 def _make_embed_reranker(compute_similarity_fn):
     """Create a rerank function from an embedding similarity function."""
+
     def rerank(skill, books, top_n=10):
-        scored = [
-            (b, compute_similarity_fn(skill, b))
-            for b in books
-        ]
+        scored = [(b, compute_similarity_fn(skill, b)) for b in books]
         scored.sort(key=lambda x: x[1], reverse=True)
         return scored[:top_n]
+
     return rerank
 
 
 def get_rerank_function():
     """Return the appropriate rerank function based on semantic model config."""
     model = _config["semantic_model"]
-    
+
     if model == "cohere":
         # Cohere rerank: batch API, profession-aware, best quality
         from my_services.semantic_filtering_cohere import rerank_books_for_skill
+
         return rerank_books_for_skill
-    
+
     else:  # cohere_embed
         # Cohere embed: per-book similarity, legacy option
         from my_services.semantic_filtering_cohere import compute_similarity
+
         return _make_embed_reranker(compute_similarity)
 
 
@@ -186,27 +186,146 @@ def is_spam_title(title: str) -> bool:
     return False
 
 
+# Trusted publishers get a boost in ranking
+TRUSTED_PUBLISHERS = {
+    "o'reilly",
+    "oreilly",
+    "wiley",
+    "springer",
+    "pearson",
+    "manning",
+    "packt",
+    "apress",
+    "mit press",
+    "mcgraw-hill",
+    "mcgraw hill",
+    "addison-wesley",
+    "addison wesley",
+    "pragmatic",
+    "no starch",
+    "cambridge university press",
+    "oxford university press",
+    "harvard business",
+    "portfolio",
+    "penguin business",
+    "hbr",
+    "kogan page",
+}
+
+# Title patterns that indicate non-professional content
+TITLE_RED_FLAGS = {
+    "coloring book",
+    "colouring book",
+    "activity book",
+    "workbook",
+    "journal",
+    "planner",
+    "notebook",
+    "diary",
+    "log book",
+    "word search",
+    "crossword",
+    "puzzle",
+    "sudoku",
+    "kids",
+    "children",
+    "toddler",
+    "baby",
+    "memes",
+    "jokes",
+    "funny",
+}
+
+# Minimum thresholds
+MIN_DESCRIPTION_LENGTH = 150
+MIN_PAGE_COUNT = 80
+
+
+def build_search_query(skill: Dict, variant: str = "default") -> str:
+    """
+    Build an optimized search query for Google Books.
+
+    Args:
+        skill: Skill dict with 'title' and 'description'
+        variant: Query variant - 'default', 'practical', or 'handbook'
+    """
+    title = skill["title"]
+
+    if variant == "practical":
+        return f"{title} practical guide professional"
+    elif variant == "handbook":
+        return f"{title} handbook"
+    else:
+        # Default: use title + key terms from description
+        desc_words = skill.get("description", "")[:100]  # First 100 chars
+        return f"{title} {desc_words}"
+
+
+def is_trusted_publisher(publisher: str) -> bool:
+    """Check if publisher is in the trusted list."""
+    if not publisher:
+        return False
+    publisher_lower = publisher.lower()
+    return any(trusted in publisher_lower for trusted in TRUSTED_PUBLISHERS)
+
+
+def has_title_red_flags(title: str) -> bool:
+    """Check if title contains red flag patterns."""
+    if not title:
+        return False
+    title_lower = title.lower()
+    return any(flag in title_lower for flag in TITLE_RED_FLAGS)
+
+
+def description_quality_check(book: Dict) -> bool:
+    """
+    Check if description meets quality standards.
+
+    Returns True if description is good enough.
+    """
+    description = book.get("description", "")
+    if not description:
+        return False
+
+    # Minimum length check
+    if len(description) < MIN_DESCRIPTION_LENGTH:
+        return False
+
+    # Check for some keyword overlap between title and description
+    title = book.get("title", "").lower()
+    desc_lower = description.lower()
+
+    # Extract meaningful words from title (3+ chars)
+    title_words = {w for w in title.split() if len(w) >= 3}
+
+    # At least one title word should appear in description
+    if title_words and not any(word in desc_lower for word in title_words):
+        return False
+
+    return True
+
+
 def fetch_skills(limit: int = 50) -> List[Dict]:
     sql = """
-        SELECT s.uri, 
-		s.skill_code, 
-		s.preferred_title AS skill_title, 
-		s.description, 
-		s.books_last_fetched_at, 
-		os.occupation_uri, 
-		o.preferred_title AS occupation_title
+        SELECT s.uri,
+        s.skill_code,
+        s.preferred_title AS skill_title,
+        s.description,
+        s.books_last_fetched_at,
+        os.occupation_uri,
+        o.preferred_title AS occupation_title
         FROM skills s
-        
+
         LEFT JOIN occupation_skills os
         ON s.uri = os.skill_uri
-        
+
         LEFT JOIN occupations o
         ON os.occupation_uri = o.uri
- 		WHERE s.skill_type ILIKE 'knowledge' 
- 		AND s.description is not NULL 
- 		AND o.uri is not NULL
- 		AND s.is_leaf = TRUE
- 		
+        WHERE s.skill_type ILIKE 'knowledge'
+        AND s.description is not NULL
+        AND o.uri is not NULL
+        AND s.is_leaf = TRUE
+
         ORDER BY skill_code
         LIMIT %s;
     """
@@ -229,14 +348,6 @@ def fetch_skills(limit: int = 50) -> List[Dict]:
         }
         for r in rows
     ]
-
-
-def search_books_for_skill(skill, client, book_limit):
-    """
-    Use your GoogleBooksClient to fetch books for each skill.
-    """
-    query = skill["title"] or skill["description"]
-    return client.search(query, book_limit)
 
 
 def filter_books(
@@ -271,8 +382,6 @@ def filter_books(
             continue
         if not b.get("authors"):
             continue
-        if require_description and not b.get("description"):
-            continue
 
         # Language sanity check (optional but recommended)
         lang = b.get("language_code")
@@ -286,6 +395,22 @@ def filter_books(
         # Spam title detection - catches SEO-stuffed titles with unrelated topics
         if is_spam_title(b.get("title", "")):
             print(f"    [SPAM] {b.get('title', '')[:50]}")
+            continue
+
+        # Title red flags (coloring books, journals, kids books, etc.)
+        if has_title_red_flags(b.get("title", "")):
+            print(f"    [RED FLAG] {b.get('title', '')[:50]}")
+            continue
+
+        # Page count filter (skip pamphlets/booklets)
+        page_count = b.get("page_count")
+        if page_count and page_count < MIN_PAGE_COUNT:
+            print(f"    [TOO SHORT] {b.get('title', '')[:40]} ({page_count} pages)")
+            continue
+
+        # Description quality gate
+        if require_description and not description_quality_check(b):
+            print(f"    [POOR DESC] {b.get('title', '')[:50]}")
             continue
 
         filtered.append(b)
@@ -319,7 +444,7 @@ def has_books_from_source(
         return cur.fetchone() is not None
 
 
-def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=False):
+def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=False):
     # TODO: Re-enable OpenLibraryClient() when search quality improves
     clients = [GoogleBooksClient()]
     skills = fetch_skills(limit=skill_limit)
@@ -332,7 +457,9 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
 
     for i, skill in enumerate(skills, start=1):
         print("\n" + "=" * 60)
-        print(f"[{i}/{len(skills)}] Skill: {skill['title']} (for {skill.get('occupation_title', 'general')})")
+        print(
+            f"[{i}/{len(skills)}] Skill: {skill['title']} (for {skill.get('occupation_title', 'general')})"
+        )
         print("=" * 60)
 
         for client in clients:
@@ -345,40 +472,38 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
                 print(f"  Skipping {source_name} (recently fetched)")
                 continue
 
-            # Build query from skill
-            query = skill["title"] or skill["description"]
+            # Multi-query strategy: try different query variants and dedupe
+            all_books = []
+            seen_isbns = set()
 
-            # Call search with source-specific params
+            query_variants = ["default", "practical", "handbook"]
+            books_per_variant = book_limit // len(query_variants)
+
+            for variant in query_variants:
+                query = build_search_query(skill, variant=variant)
+                print(f"  Query ({variant}): {query[:60]}...")
+
+                try:
+                    books = client.search(query, books_per_variant)
+                except Exception as e:
+                    print(f"  [ERROR] {source_name} ({variant}) failed: {e}")
+                    continue
+
+                # Dedupe by ISBN
+                for book in books:
+                    isbn = book.get("isbn_13") or book.get("isbn_10")
+                    if isbn and isbn not in seen_isbns:
+                        seen_isbns.add(isbn)
+                        all_books.append(book)
+
             try:
-                if source_name == "open_library":
-                    # Open Library has built-in filtering and subject matching
-                    books = client.search(
-                        query,
-                        max_results=book_limit,
-                        language="eng",
-                        min_year=min_year,
-                        filter_by_subject=True,
-                        subject_threshold=0.7,
-                    )
-                    # Open Library doesn't return descriptions in search results
-                    # Fetch descriptions for better reranking (limit to top candidates)
-                    filtered_books = filter_books(
-                        books,
-                        min_year=min_year,
-                        require_description=False,
-                    )
-                    # Enrich with descriptions before reranking
-                    print(f"  Fetching descriptions for {min(len(filtered_books), 20)} Open Library books...")
-                    client.enrich_with_descriptions(filtered_books, max_books=20, delay=0.1)
-                else:
-                    books = client.search(query, book_limit)
-                    filtered_books = filter_books(
-                        books,
-                        min_year=min_year,
-                        require_description=True,
-                    )
+                filtered_books = filter_books(
+                    all_books,
+                    min_year=min_year,
+                    require_description=True,
+                )
             except Exception as e:
-                print(f"  [ERROR] {source_name} failed: {e}")
+                print(f"  [ERROR] filtering failed: {e}")
                 continue
 
             print(f"  {source_name}: {len(filtered_books)} books after hard filters")
@@ -386,7 +511,7 @@ def run_search(skill_limit=1000, book_limit=40, min_year=2020, force_refresh=Fal
             # Semantic reranking - returns [(book, score), ...] sorted by relevance
             rerank_fn = get_rerank_function()
             reranked = rerank_fn(skill, filtered_books, top_n=10)
-            
+
             for b, score in reranked:
                 print(f"    {b.get('title', '')[:40]}: {score:.2f}")
 

@@ -6,6 +6,32 @@ import math
 from datetime import datetime
 from typing import Dict, List, Tuple
 
+# Trusted publishers for professional/technical books
+TRUSTED_PUBLISHERS = {
+    "o'reilly",
+    "oreilly",
+    "wiley",
+    "springer",
+    "pearson",
+    "manning",
+    "packt",
+    "apress",
+    "mit press",
+    "mcgraw-hill",
+    "mcgraw hill",
+    "addison-wesley",
+    "addison wesley",
+    "pragmatic",
+    "no starch",
+    "cambridge university press",
+    "oxford university press",
+    "harvard business",
+    "portfolio",
+    "penguin business",
+    "hbr",
+    "kogan page",
+}
+
 
 class BookRanker:
     """
@@ -31,6 +57,7 @@ class BookRanker:
             "rating_count_cap": 100,  # Max rating count contribution
             "rating_multiplier": 10,  # average_rating * this
             "publisher": 10,
+            "trusted_publisher": 25,  # Bonus for reputable publishers
             "subjects": 5,
             "educational_subject": 30,  # Bonus for educational/textbook subjects
         }
@@ -73,8 +100,12 @@ class BookRanker:
             s += average_rating * self.weights["rating_multiplier"]
 
         # Metadata quality
-        if book.get("publisher"):
+        publisher = book.get("publisher", "")
+        if publisher:
             s += self.weights["publisher"]
+            # Trusted publisher bonus
+            if any(trusted in publisher.lower() for trusted in TRUSTED_PUBLISHERS):
+                s += self.weights["trusted_publisher"]
         if book.get("subjects"):
             s += self.weights["subjects"]
 
@@ -84,7 +115,7 @@ class BookRanker:
         # Source-specific scoring
         if self.source == "open_library":
             s += self._score_open_library(book)
-        
+
         # Semantic relevance score (if present)
         relevance = book.get("semantic_relevance_score", 0) or 0
         s += relevance * 50  # Weight for semantic relevance
