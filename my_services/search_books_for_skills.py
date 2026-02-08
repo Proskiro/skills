@@ -35,6 +35,7 @@ from my_services.book_persistence import (
     upsert_book,
 )
 from my_services.book_ranking import rank_books
+from my_services.content_filter import is_occupation_excluded, is_skill_excluded
 from my_tools.db import get_db_connection
 
 # Semantic model selection - set via CLI argument
@@ -43,9 +44,17 @@ from my_tools.db import get_db_connection
 #   - "cohere_embed": Cohere embed API - legacy, per-book similarity
 _config = {"semantic_model": "cohere"}
 
+# Minimum relevance score from Cohere rerank to include a book
+# Scores below this are likely irrelevant matches
+MIN_RELEVANCE_SCORE = 0.3
+MIN_RELEVANCE_SCORE_FALLBACK = 0.16  # Lower threshold for fallback searches
+
 
 def update_google_books_total(conn, skill_uri: str, total: int):
-    """Update the google_books_total column for a skill (popularity signal)."""
+    """Update the google_books_total column for a skill (popularity signal).
+    
+    Now uses actual filtered book count instead of unreliable API totalItems.
+    """
     sql = """
         UPDATE skills 
         SET google_books_total = %s 
@@ -197,6 +206,75 @@ def is_spam_title(title: str) -> bool:
     return False
 
 
+# Common occupation terms that indicate a book is targeted at a specific profession
+# Used to filter out books for OTHER occupations (not the target occupation)
+OCCUPATION_INDICATORS = {
+    # Healthcare
+    "nurse", "nurses", "nursing", "physician", "doctor", "medical", "clinical",
+    "therapist", "dentist", "pharmacist", "surgeon", "paramedic", "midwife",
+    "veterinary", "veterinarian", "optometrist", "radiologist", "anesthesiologist",
+    # Education
+    "teacher", "teachers", "educator", "professor", "faculty", "classroom",
+    "school principal", "librarian", "tutor",
+    # Legal/Finance
+    "lawyer", "attorney", "paralegal", "accountant", "auditor", "banker",
+    "financial advisor", "tax professional",
+    # Technical
+    "engineer", "developer", "programmer", "architect", "technician",
+    "data scientist", "analyst",
+    # Business
+    "manager", "executive", "ceo", "cfo", "director", "supervisor",
+    "administrator", "coordinator", "consultant",
+    # Service
+    "chef", "waiter", "receptionist", "concierge", "housekeeper",
+    "retail", "sales representative", "customer service",
+    # Trades
+    "electrician", "plumber", "carpenter", "mechanic", "welder",
+    "construction worker", "technician",
+    # Creative
+    "designer", "artist", "writer", "journalist", "photographer",
+    # Other
+    "pilot", "driver", "officer", "police", "firefighter", "military",
+    "social worker", "counselor", "psychologist",
+}
+
+
+def mentions_different_occupation(book: Dict, target_occupation: str) -> bool:
+    """
+    Check if a book mentions a specific occupation that's different from the target.
+    
+    Returns True if book should be filtered out (mentions different occupation).
+    Returns False if book is generic or matches target occupation.
+    """
+    if not target_occupation:
+        return False  # No target occupation to compare against
+    
+    title = (book.get("title") or "").lower()
+    description = (book.get("description") or "").lower()
+    book_text = f"{title} {description}"
+    
+    # Normalize target occupation for matching
+    target_lower = target_occupation.lower()
+    target_words = set(target_lower.split())
+    
+    # Check each occupation indicator
+    for indicator in OCCUPATION_INDICATORS:
+        if indicator in book_text:
+            # Check if this indicator matches the target occupation
+            indicator_words = set(indicator.split())
+            if indicator_words & target_words:  # Overlap with target
+                continue  # This is fine - matches target occupation
+            if indicator in target_lower:
+                continue  # Indicator is part of target occupation
+            if target_lower in indicator:
+                continue  # Target is part of indicator
+            
+            # Found an occupation indicator that doesn't match target
+            return True
+    
+    return False  # Generic book or matches target
+
+
 # Trusted publishers get a boost in ranking
 TRUSTED_PUBLISHERS = {
     "o'reilly",
@@ -252,23 +330,31 @@ MIN_DESCRIPTION_LENGTH = 150
 MIN_PAGE_COUNT = 80
 
 
-def build_search_query(skill: Dict, variant: str = "default") -> str:
+def build_search_query(skill: Dict, variant: str = "default", use_occupation: bool = True) -> str:
     """
     Build an optimized search query for Google Books.
 
     Args:
-        skill: Skill dict with 'title' and 'description'
+        skill: Skill dict with 'title', 'description', and optionally 'occupation_title'
         variant: Query variant - 'default', 'practical', or 'handbook'
+        use_occupation: Whether to include occupation in query (False for fallback)
     """
     title = skill["title"]
+    occupation = skill.get("occupation_title", "") if use_occupation else ""
 
     if variant == "practical":
+        if occupation:
+            return f"{title} {occupation} practical guide professional"
         return f"{title} practical guide professional"
     elif variant == "handbook":
+        if occupation:
+            return f"{title} {occupation} handbook"
         return f"{title} handbook"
     else:
-        # Default: use title + key terms from description
+        # Default: use title + occupation + key terms from description
         desc_words = skill.get("description", "")[:100]  # First 100 chars
+        if occupation:
+            return f"{title} {occupation} {desc_words}"
         return f"{title} {desc_words}"
 
 
@@ -348,23 +434,44 @@ def fetch_skills(limit: int = 50) -> List[Dict]:
 
     conn.close()
 
-    return [
-        {
-            "uri": r[0],
-            "occupation_title": r[6],
+    skills = []
+    excluded_count = 0
+    
+    for r in rows:
+        skill_uri = r[0]
+        skill_title = r[2]
+        skill_description = r[3]
+        occupation_uri = r[5]
+        occupation_title = r[6]
+        
+        # Apply content filter
+        if is_occupation_excluded(occupation_uri or "", occupation_title or ""):
+            excluded_count += 1
+            continue
+        if is_skill_excluded(skill_uri, skill_title, skill_description):
+            excluded_count += 1
+            continue
+        
+        skills.append({
+            "uri": skill_uri,
+            "occupation_title": occupation_title,
             "skill_code": r[1],
-            "title": r[2],
-            "description": r[3],
+            "title": skill_title,
+            "description": skill_description,
             "books_last_fetched_at": r[4],
-        }
-        for r in rows
-    ]
+        })
+    
+    if excluded_count > 0:
+        print(f"  [CONTENT FILTER] Excluded {excluded_count} skills/occupations")
+    
+    return skills
 
 
 def filter_books(
     books: List[Dict],
     min_year: int = 2020,
     require_description: bool = True,
+    target_occupation: str = None,
 ) -> List[Dict]:
     """
     Hard quality filters only (no semantic filtering).
@@ -375,6 +482,7 @@ def filter_books(
         min_year: Minimum publication year
         require_description: If False, skip description check
             (Open Library doesn't return descriptions in search)
+        target_occupation: If provided, filter out books targeting different occupations
     """
     filtered = []
 
@@ -422,6 +530,11 @@ def filter_books(
         # Description quality gate
         if require_description and not description_quality_check(b):
             print(f"    [POOR DESC] {b.get('title', '')[:50]}")
+            continue
+
+        # Filter out books targeting a different occupation
+        if target_occupation and mentions_different_occupation(b, target_occupation):
+            print(f"    [WRONG OCCUPATION] {b.get('title', '')[:50]}")
             continue
 
         filtered.append(b)
@@ -484,38 +597,38 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                 continue
 
             # Multi-query strategy: try different query variants and dedupe
-            all_books = []
-            seen_isbns = set()
-            max_total_items = 0  # Track Google Books total for popularity signal
+            def fetch_and_filter_books(use_occupation: bool = True):
+                """Helper to fetch books with or without occupation in query."""
+                books_list = []
+                seen = set()
+                
+                for variant in ["default", "practical", "handbook"]:
+                    query = build_search_query(skill, variant=variant, use_occupation=use_occupation)
+                    print(f"  Query ({variant}): {query[:60]}...")
 
-            query_variants = ["default", "practical", "handbook"]
-            books_per_variant = book_limit // len(query_variants)
+                    try:
+                        books, _ = client.search(query, book_limit // 3)
+                    except Exception as e:
+                        print(f"  [ERROR] {source_name} ({variant}) failed: {e}")
+                        continue
 
-            for variant in query_variants:
-                query = build_search_query(skill, variant=variant)
-                print(f"  Query ({variant}): {query[:60]}...")
+                    for book in books:
+                        isbn = book.get("isbn_13") or book.get("isbn_10")
+                        if isbn and isbn not in seen:
+                            seen.add(isbn)
+                            books_list.append(book)
+                
+                return books_list
 
-                try:
-                    books, total_items = client.search(query, books_per_variant)
-                    # Track the highest total (default query is most representative)
-                    if variant == "default":
-                        max_total_items = total_items
-                except Exception as e:
-                    print(f"  [ERROR] {source_name} ({variant}) failed: {e}")
-                    continue
-
-                # Dedupe by ISBN
-                for book in books:
-                    isbn = book.get("isbn_13") or book.get("isbn_10")
-                    if isbn and isbn not in seen_isbns:
-                        seen_isbns.add(isbn)
-                        all_books.append(book)
+            # First attempt: with occupation in query
+            all_books = fetch_and_filter_books(use_occupation=True)
 
             try:
                 filtered_books = filter_books(
                     all_books,
                     min_year=min_year,
                     require_description=True,
+                    target_occupation=skill.get("occupation_title"),
                 )
             except Exception as e:
                 print(f"  [ERROR] filtering failed: {e}")
@@ -523,12 +636,50 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
 
             print(f"  {source_name}: {len(filtered_books)} books after hard filters")
 
+            # Fallback: if too few results, try without occupation in query
+            MIN_BOOKS_THRESHOLD = 3
+            used_fallback = False
+            if len(filtered_books) < MIN_BOOKS_THRESHOLD and skill.get("occupation_title"):
+                print(f"  [FALLBACK] Only {len(filtered_books)} books, trying generic search...")
+                used_fallback = True
+                
+                fallback_books = fetch_and_filter_books(use_occupation=False)
+                
+                # Filter fallback books (still exclude wrong occupations)
+                try:
+                    fallback_filtered = filter_books(
+                        fallback_books,
+                        min_year=min_year,
+                        require_description=True,
+                        target_occupation=skill.get("occupation_title"),
+                    )
+                except Exception as e:
+                    print(f"  [ERROR] fallback filtering failed: {e}")
+                    fallback_filtered = []
+                
+                # Merge: add fallback books not already in filtered_books
+                existing_isbns = {b.get("isbn_13") or b.get("isbn_10") for b in filtered_books}
+                for book in fallback_filtered:
+                    isbn = book.get("isbn_13") or book.get("isbn_10")
+                    if isbn and isbn not in existing_isbns:
+                        filtered_books.append(book)
+                        existing_isbns.add(isbn)
+                
+                print(f"  {source_name}: {len(filtered_books)} books after fallback")
+
             # Semantic reranking - returns [(book, score), ...] sorted by relevance
             rerank_fn = get_rerank_function()
             reranked = rerank_fn(skill, filtered_books, top_n=10)
 
             for b, score in reranked:
                 print(f"    {b.get('title', '')[:40]}: {score:.2f}")
+
+            # Filter out low-relevance books (use lower threshold if fallback was used)
+            relevance_threshold = MIN_RELEVANCE_SCORE_FALLBACK if used_fallback else MIN_RELEVANCE_SCORE
+            reranked = [(b, score) for b, score in reranked if score >= relevance_threshold]
+            
+            if len(reranked) < len(filtered_books):
+                print(f"  [RELEVANCE] Filtered to {len(reranked)} books (score >= {relevance_threshold})")
 
             # Extract just the books for further ranking
             semantically_filtered = [b for b, score in reranked]
@@ -564,15 +715,17 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                     rank=rank,
                 )
 
-            # Update Google Books total count for star rating
-            if max_total_items > 0:
-                update_google_books_total(conn, skill["uri"], max_total_items)
-                print(f"  Google Books total: {max_total_items:,}")
+            # Update book count for popularity signal (actual filtered count)
+            books_found = len(filtered_books)
+            if books_found > 0:
+                update_google_books_total(conn, skill["uri"], books_found)
+                print(f"  Books found (filtered): {books_found}")
 
             conn.commit()
 
-            # Gentle throttle per source
-            time.sleep(0.15 + random.random() * 0.20)
+            # Throttle between skills to avoid rate limits
+            # With fallback, each skill can make 6 queries (3 + 3), so be conservative
+            time.sleep(1.0 + random.random() * 0.5)
 
     conn.close()
     return results
@@ -588,14 +741,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--skill-limit",
         type=int,
-        default=1000,
-        help="Maximum number of skills to process (default: 1000)",
+        default=800,
+        help="Maximum number of skills to process (default: 500)",
     )
     parser.add_argument(
         "--book-limit",
         type=int,
-        default=40,
-        help="Maximum books to fetch per source (default: 40)",
+        default=120,
+        help="Maximum books to fetch per source (default: 120)",
     )
     parser.add_argument(
         "--min-year",

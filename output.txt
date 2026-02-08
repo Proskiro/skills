@@ -1,0 +1,1213 @@
+Using semantic model: cohere
+  [API] Loaded 2 Google Books API key(s)
+  [CONTENT FILTER] Excluded 4 skills/occupations
+Force refresh enabled - ignoring recently fetched check
+
+============================================================
+[1/46] Skill: team building (for outdoor activities instructor)
+============================================================
+  Query (default): team building outdoor activities instructor Principle usuall...
+  [API] Rotated from key 1 to key 2
+  Query (practical): team building outdoor activities instructor practical guide ...
+  Query (handbook): team building outdoor activities instructor handbook...
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): team building Principle usually combined with a type of even...
+  Query (practical): team building practical guide professional...
+  Query (handbook): team building handbook...
+    [WRONG OCCUPATION] A Practical Guide for Medical Teachers, E-Book
+    [WRONG OCCUPATION] Team Building
+  google_books: 0 books after fallback
+  Returning top 0 books
+    (no books passed filters)
+
+============================================================
+[2/46] Skill: hand gestures (for notary)
+============================================================
+  Query (default): hand gestures notary The meanings of different hand gestures...
+  Query (practical): hand gestures notary practical guide professional...
+  Query (handbook): hand gestures notary handbook...
+  google_books: 2 books after hard filters
+  [FALLBACK] Only 2 books, trying generic search...
+  Query (default): hand gestures The meanings of different hand gestures signif...
+  Query (practical): hand gestures practical guide professional...
+  Query (handbook): hand gestures handbook...
+    [SPAM] Co-constructing Intercultural Space
+    [WRONG OCCUPATION] The Philosophy of Symbolic Forms, Volume 1
+    [WRONG OCCUPATION] Professionalism in the Practice of Physical Therap
+  google_books: 4 books after fallback
+    Dictionary of Gestures: 0.69
+    Beginners Guide to Hand Gestures: 0.24
+    Respiratory Care: Principles and Practic: 0.01
+    Handbook of African Philosophy: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - Dictionary of Gestures | 2023
+    - Beginners Guide to Hand Gestures | 2023
+  Books found (filtered): 4
+
+============================================================
+[3/46] Skill: communication (for community social worker)
+============================================================
+  Query (default): communication community social worker Exchanging and conveyi...
+  Query (practical): communication community social worker practical guide profes...
+  Query (handbook): communication community social worker handbook...
+    [WRONG OCCUPATION] Proceedings of the 7th International Conference on
+    [SPAM] Bridging the Gap: Disciplines, Times, and Spaces i
+    [WRONG OCCUPATION] Consumer Engagement in the Cultural Sector
+    [WRONG OCCUPATION] Fieldwork in Social Work
+    [WRONG OCCUPATION] Communication in Paramedic Practice
+  google_books: 3 books after hard filters
+    A Practical Guide to Community Social Wo: 0.91
+    Communicating Risk and Safety: 0.02
+    Technology in Mental Health: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.3)
+  Returning top 1 books
+    - A Practical Guide to Community Social Work Practice in the UK | 2024
+  Books found (filtered): 3
+
+============================================================
+[4/46] Skill: communication (for crisis helpline operator)
+============================================================
+  Query (default): communication crisis helpline operator Exchanging and convey...
+  Query (practical): communication crisis helpline operator practical guide profe...
+  Query (handbook): communication crisis helpline operator handbook...
+    [POOR DESC] ResiliArt 100
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 5 books after fallback
+    An easy approach to professional communi: 0.25
+    Effective Communication at Work: 0.12
+    The Handbook of Communication Skills: 0.02
+    Professional English: 0.01
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 5
+
+============================================================
+[5/46] Skill: communication (for survey enumerator)
+============================================================
+  Query (default): communication survey enumerator Exchanging and conveying inf...
+  Query (practical): communication survey enumerator practical guide professional...
+  Query (handbook): communication survey enumerator handbook...
+    [WRONG OCCUPATION] A Practical Guide to Survey Questionnaire Design a
+    [TOO SHORT] A methodological guide for mapping women (74 pages)
+    [WRONG OCCUPATION] Development Research in Practice
+  google_books: 3 books after hard filters
+    A Practical Introduction to Survey Desig: 0.05
+    Surveys That Work: 0.01
+    Restoration in Action Against Desertific: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.3)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 3
+
+============================================================
+[6/46] Skill: communication (for social worker)
+============================================================
+  Query (default): communication social worker Exchanging and conveying informa...
+  Query (practical): communication social worker practical guide professional...
+  Query (handbook): communication social worker handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Proceedings of the 7th International Conference on
+    [SPAM] Bridging the Gap: Disciplines, Times, and Spaces i
+  google_books: 3 books after hard filters
+    The Social Worker's Practice Manual: 0.76
+    Communicating Risk and Safety: 0.03
+    Handbook of Research on Digital Violence: 0.02
+  [RELEVANCE] Filtered to 1 books (score >= 0.3)
+  Returning top 1 books
+    - The Social Worker's Practice Manual | 2023
+  Books found (filtered): 3
+
+============================================================
+[7/46] Skill: communication (for market research interviewer)
+============================================================
+  Query (default): communication market research interviewer Exchanging and con...
+  Query (practical): communication market research interviewer practical guide pr...
+  Query (handbook): communication market research interviewer handbook...
+    [POOR DESC] Evaluating Performance
+    [WRONG OCCUPATION] Understanding Corporate Communications
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 5 books after fallback
+    An easy approach to professional communi: 0.56
+    Effective Communication at Work: 0.29
+    The Handbook of Communication Skills: 0.09
+    Professional English: 0.01
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - An easy approach to professional communication | 2020
+    - Effective Communication at Work | 2021
+  Books found (filtered): 5
+
+============================================================
+[8/46] Skill: communication (for business service manager)
+============================================================
+  Query (default): communication business service manager Exchanging and convey...
+  Query (practical): communication business service manager practical guide profe...
+  Query (handbook): communication business service manager handbook...
+    [WRONG OCCUPATION] A Practical Guide to Service Management
+    [WRONG OCCUPATION] Collaboration and Integration in Construction, Eng
+  google_books: 3 books after hard filters
+    Sales Management for Improved Organizati: 0.00
+    Understanding the Urban Sharing Economy: 0.00
+    Multinational Management: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.3)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 3
+
+============================================================
+[9/46] Skill: communication (for social work assistant)
+============================================================
+  Query (default): communication social work assistant Exchanging and conveying...
+  Query (practical): communication social work assistant practical guide professi...
+  Query (handbook): communication social work assistant handbook...
+    [WRONG OCCUPATION] Learning to Care - E-Book
+    [WRONG OCCUPATION] Teaching Science Students to Communicate: A Practi
+    [WRONG OCCUPATION] Professional Writing Skills for Social Workers, 2e
+  google_books: 3 books after hard filters
+    Communication in Social Work: 0.99
+    A Practical Guide to Community Social Wo: 0.11
+    Sustainable Tourism in the Social Media : 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.3)
+  Returning top 1 books
+    - Communication in Social Work | 2020
+  Books found (filtered): 3
+
+============================================================
+[10/46] Skill: communication (for network marketer)
+============================================================
+  Query (default): communication network marketer Exchanging and conveying info...
+  Query (practical): communication network marketer practical guide professional...
+  Query (handbook): communication network marketer handbook...
+    [WRONG OCCUPATION] Education And Awareness Of Sustainability - Procee
+  google_books: 5 books after hard filters
+    MLM GURU Handbook: 0.36
+    Network Marketing Success Blueprint: 0.30
+    Research Handbook on Strategic Communica: 0.10
+    Uniting Marketing Efforts for the Common: 0.00
+    Sustainable Tourism in the Social Media : 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.3)
+  Returning top 2 books
+    - Network Marketing Success Blueprint | 2024
+    - MLM GURU Handbook | 2021
+  Books found (filtered): 5
+
+============================================================
+[11/46] Skill: communication (for human resources manager)
+============================================================
+  Query (default): communication human resources manager Exchanging and conveyi...
+  Query (practical): communication human resources manager practical guide profes...
+  Query (handbook): communication human resources manager handbook...
+    [WRONG OCCUPATION] Palliative Care and Hospice
+  google_books: 3 books after hard filters
+    Human Resource Management: 0.25
+    Human Resource Management In Singapore -: 0.06
+    Handbook of Chinese Management: 0.01
+  [RELEVANCE] Filtered to 0 books (score >= 0.3)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 3
+
+============================================================
+[12/46] Skill: communication (for communication scientist)
+============================================================
+  Query (default): communication communication scientist Exchanging and conveyi...
+  Query (practical): communication communication scientist practical guide profes...
+  Query (handbook): communication communication scientist handbook...
+    [WRONG OCCUPATION] Higher Education Good Governance and Development
+    [WRONG OCCUPATION] Teaching Science Students to Communicate: A Practi
+    [WRONG OCCUPATION] Education and Training in Biomedical Science
+    [WRONG OCCUPATION] Routledge Handbook of Public Communication of Scie
+    [WRONG OCCUPATION] Effective Science Communication (Second Edition)
+    [WRONG OCCUPATION] The Routledge Handbook of Scientific Communication
+  google_books: 8 books after hard filters
+    The Communicating Scientist: 0.91
+    Effective Science Communication (Third E: 0.33
+    Effective Science Communication: 0.26
+    Science Communication Made Easy: 0.11
+    The Handbook of Communication Science an: 0.10
+    Handbook Of Mathematical Science Communi: 0.00
+    Intimacy Science: 0.00
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.3)
+  Returning top 2 books
+    - The Communicating Scientist | 2025
+    - Effective Science Communication (Third Edition) | 2024
+  Books found (filtered): 8
+
+============================================================
+[13/46] Skill: communication (for quality engineer)
+============================================================
+  Query (default): communication quality engineer Exchanging and conveying info...
+  Query (practical): communication quality engineer practical guide professional...
+  Query (handbook): communication quality engineer handbook...
+    [WRONG OCCUPATION] Understanding Corporate Communications
+    [WRONG OCCUPATION] De Gruyter Handbook of Digital Cultures
+    [WRONG OCCUPATION] Critical Care Nursing
+    [WRONG OCCUPATION] The ASQ Certified Software Quality Engineer Handbo
+  google_books: 5 books after hard filters
+    Quality of Information and Communication: 0.08
+    Quality of Information and Communication: 0.06
+    Maynard's Industrial and Systems Enginee: 0.01
+    Collaboration and Integration in Constru: 0.00
+    Kansei Engineering and Emotion Research: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.3)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 5
+
+============================================================
+[14/46] Skill: communication (for calculation engineer)
+============================================================
+  Query (default): communication calculation engineer Exchanging and conveying ...
+  Query (practical): communication calculation engineer practical guide professio...
+  Query (handbook): communication calculation engineer handbook...
+    [WRONG OCCUPATION] Transforming the Gateway Course Experience
+    [WRONG OCCUPATION] Understanding Corporate Communications
+  google_books: 2 books after hard filters
+  [FALLBACK] Only 2 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 7 books after fallback
+    An easy approach to professional communi: 0.39
+    Effective Communication at Work: 0.17
+    The Handbook of Communication Skills: 0.04
+    Professional English: 0.01
+    Inner Development Goals: 0.00
+    Language and Emotion. Volume 1: 0.00
+    Air Pollution Calculations: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 7
+
+============================================================
+[15/46] Skill: communication (for installation engineer)
+============================================================
+  Query (default): communication installation engineer Exchanging and conveying...
+  Query (practical): communication installation engineer practical guide professi...
+  Query (handbook): communication installation engineer handbook...
+    [POOR DESC] Soft Skills in Engineering: Communication, Persona
+    [POOR DESC] Future of STEM education: Multiple perspectives fr
+  google_books: 5 books after hard filters
+    The Communicative Engineer: 0.42
+    Civil Engineer's Handbook of Professiona: 0.01
+    Collaboration and Integration in Constru: 0.00
+    Companion Proceedings of 7th South Asia : 0.00
+    Artificial Intelligence-Empowered Softwa: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.3)
+  Returning top 1 books
+    - The Communicative Engineer | 2024
+  Books found (filtered): 5
+
+============================================================
+[16/46] Skill: communication (for patent engineer)
+============================================================
+  Query (default): communication patent engineer Exchanging and conveying infor...
+  Query (practical): communication patent engineer practical guide professional...
+  Query (handbook): communication patent engineer handbook...
+    [WRONG OCCUPATION] Agricultural, Biosystems, and Biological Engineeri
+    [WRONG OCCUPATION] AI Governance Handbook
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 5 books after fallback
+    An easy approach to professional communi: 0.54
+    Effective Communication at Work: 0.30
+    The Handbook of Communication Skills: 0.06
+    Professional English: 0.02
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - An easy approach to professional communication | 2020
+    - Effective Communication at Work | 2021
+  Books found (filtered): 5
+
+============================================================
+[17/46] Skill: communication (for maintenance and repair engineer)
+============================================================
+  Query (default): communication maintenance and repair engineer Exchanging and...
+  Query (practical): communication maintenance and repair engineer practical guid...
+  Query (handbook): communication maintenance and repair engineer handbook...
+    [WRONG OCCUPATION] Transforming the Gateway Course Experience
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 5 books after fallback
+    An easy approach to professional communi: 0.74
+    Effective Communication at Work: 0.53
+    The Handbook of Communication Skills: 0.11
+    Professional English: 0.07
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - An easy approach to professional communication | 2020
+    - Effective Communication at Work | 2021
+  Books found (filtered): 5
+
+============================================================
+[18/46] Skill: communication (for academic support officer)
+============================================================
+  Query (default): communication academic support officer Exchanging and convey...
+  Query (practical): communication academic support officer practical guide profe...
+  Query (handbook): communication academic support officer handbook...
+    [WRONG OCCUPATION] Being an Effective Programme Leader in Higher Educ
+    [WRONG OCCUPATION] The Chief Academic Officer's Handbook
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.37
+    Effective Communication at Work: 0.12
+    The Handbook of Communication Skills: 0.04
+    Professional English: 0.01
+    Resource Handbook for Academic Deans: 0.00
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 6
+
+============================================================
+[19/46] Skill: communication (for synthetic materials engineer)
+============================================================
+  Query (default): communication synthetic materials engineer Exchanging and co...
+  Query (practical): communication synthetic materials engineer practical guide p...
+  Query (handbook): communication synthetic materials engineer handbook...
+  google_books: 4 books after hard filters
+    Proceedings of International Conference : 0.00
+    Artificial Intelligence in Wireless Sens: 0.00
+    Companion Proceedings of 7th South Asia : 0.00
+    Kansei Engineering and Emotion Research: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.3)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 4
+
+============================================================
+[20/46] Skill: communication (for paper engineer)
+============================================================
+  Query (default): communication paper engineer Exchanging and conveying inform...
+  Query (practical): communication paper engineer practical guide professional...
+  Query (handbook): communication paper engineer handbook...
+    [WRONG OCCUPATION] Handbook of Research on Barriers for Teaching 21st
+    [WRONG OCCUPATION] Teaching the Literature of Climate Change
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.38
+    Effective Communication at Work: 0.13
+    The Handbook of Communication Skills: 0.03
+    Professional English: 0.01
+    Human-Computer Interaction: 0.00
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 6
+
+============================================================
+[21/46] Skill: communication (for admissions coordinator)
+============================================================
+  Query (default): communication admissions coordinator Exchanging and conveyin...
+  Query (practical): communication admissions coordinator practical guide profess...
+  Query (handbook): communication admissions coordinator handbook...
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 5 books after fallback
+    An easy approach to professional communi: 0.17
+    Effective Communication at Work: 0.08
+    The Handbook of Communication Skills: 0.02
+    Professional English: 0.00
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.23)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 5
+
+============================================================
+[22/46] Skill: communication (for parliamentary assistant)
+============================================================
+  Query (default): communication parliamentary assistant Exchanging and conveyi...
+  Query (practical): communication parliamentary assistant practical guide profes...
+  Query (handbook): communication parliamentary assistant handbook...
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.21
+    Effective Communication at Work: 0.05
+    The Handbook of Communication Skills: 0.02
+    Professional English: 0.00
+    Political Management: 0.00
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.23)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 6
+
+============================================================
+[23/46] Skill: communication (for activity leader)
+============================================================
+  Query (default): communication activity leader Exchanging and conveying infor...
+  Query (practical): communication activity leader practical guide professional...
+  Query (handbook): communication activity leader handbook...
+    [WRONG OCCUPATION] Collaborative Convergence and Virtual Teamwork for
+    [WRONG OCCUPATION] The Rockstar IT Leader Handbook
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.45
+    Effective Communication at Work: 0.19
+    The Handbook of Communication Skills: 0.04
+    Professional English: 0.01
+    A Comprehensive text book of Management : 0.00
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 6
+
+============================================================
+[24/46] Skill: communication (for corporate trainer)
+============================================================
+  Query (default): communication corporate trainer Exchanging and conveying inf...
+  Query (practical): communication corporate trainer practical guide professional...
+  Query (handbook): communication corporate trainer handbook...
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.66
+    Effective Communication at Work: 0.41
+    The Handbook of Communication Skills: 0.08
+    Professional English: 0.07
+    Language and Emotion. Volume 1: 0.00
+    Collage as a Creative Coaching Tool: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - An easy approach to professional communication | 2020
+    - Effective Communication at Work | 2021
+  Books found (filtered): 6
+
+============================================================
+[25/46] Skill: communication (for field survey manager)
+============================================================
+  Query (default): communication field survey manager Exchanging and conveying ...
+  Query (practical): communication field survey manager practical guide professio...
+  Query (handbook): communication field survey manager handbook...
+    [WRONG OCCUPATION] International Managerial Skills in Higher Educatio
+    [WRONG OCCUPATION] Knowledge Innovation On Design And Culture - Proce
+    [WRONG OCCUPATION] Harmonized health facility assessment (HHFA): comp
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 7 books after fallback
+    An easy approach to professional communi: 0.60
+    Effective Communication at Work: 0.30
+    Workplace Communication: 0.19
+    Research Handbook on Strategic Communica: 0.10
+    The Handbook of Communication Skills: 0.07
+    Professional English: 0.01
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - An easy approach to professional communication | 2020
+    - Effective Communication at Work | 2021
+  Books found (filtered): 7
+
+============================================================
+[26/46] Skill: communication (for boiler operator)
+============================================================
+  Query (default): communication boiler operator Exchanging and conveying infor...
+  Query (practical): communication boiler operator practical guide professional...
+  Query (handbook): communication boiler operator handbook...
+    [WRONG OCCUPATION] Boiler Operator's Handbook, Second Edition
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 6 books after fallback
+    Boiler Operator's Handbook: 0.93
+    An easy approach to professional communi: 0.34
+    Effective Communication at Work: 0.12
+    The Handbook of Communication Skills: 0.02
+    Professional English: 0.01
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - Boiler Operator's Handbook | 2021
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 6
+
+============================================================
+[27/46] Skill: communication (for corporate training manager)
+============================================================
+  Query (default): communication corporate training manager Exchanging and conv...
+  Query (practical): communication corporate training manager practical guide pro...
+  Query (handbook): communication corporate training manager handbook...
+    [WRONG OCCUPATION] Groundwork of Skill Acquisition and Development
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 7 books after fallback
+    An easy approach to professional communi: 0.68
+    Effective Communication at Work: 0.41
+    Workplace Communication: 0.40
+    The Handbook of Communication Skills: 0.09
+    Professional English: 0.05
+    Language and Emotion. Volume 1: 0.00
+    Health Literacy and Digital Health Liter: 0.00
+  [RELEVANCE] Filtered to 3 books (score >= 0.23)
+  Returning top 3 books
+    - Workplace Communication | 2025
+    - An easy approach to professional communication | 2020
+    - Effective Communication at Work | 2021
+  Books found (filtered): 7
+
+============================================================
+[28/46] Skill: communication (for business coach)
+============================================================
+  Query (default): communication business coach Exchanging and conveying inform...
+  Query (practical): communication business coach practical guide professional...
+  Query (handbook): communication business coach handbook...
+    [WRONG OCCUPATION] Physician Leader
+    [POOR DESC] The art of human-robot interaction: Creative persp
+    [WRONG OCCUPATION] The Ethical Coaches’ Handbook
+    [WRONG OCCUPATION] Creative Confidence – Confident Originality for Pr
+    [WRONG OCCUPATION] The Digital and AI Coaches' Handbook
+    [WRONG OCCUPATION] The Highflier Handbook
+    [WRONG OCCUPATION] The Coaches' Handbook
+    [WRONG OCCUPATION] A Leader’s Guide to Storytelling
+  google_books: 2 books after hard filters
+  [FALLBACK] Only 2 books, trying generic search...
+  Query (default): communication Exchanging and conveying information, ideas, c...
+  Query (practical): communication practical guide professional...
+  Query (handbook): communication handbook...
+    [WRONG OCCUPATION] Giddens's Concepts for Canadian Nursing Practice -
+    [WRONG OCCUPATION] Leadership as Performance
+    [WRONG OCCUPATION] Effective Communication for Lawyers
+    [WRONG OCCUPATION] A Practical Guide for Nurse Practitioner Faculty U
+    [WRONG OCCUPATION] Workplace Communication
+    [WRONG OCCUPATION] Bedside Communication Handbook, The: Speaking With
+  google_books: 7 books after fallback
+    An easy approach to professional communi: 0.72
+    Effective Communication at Work: 0.50
+    The Handbook of Communication Skills: 0.08
+    Powerful Communication: 0.07
+    Foundations of Professional Coaching: 0.06
+    Professional English: 0.02
+    Language and Emotion. Volume 1: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - An easy approach to professional communication | 2020
+    - Effective Communication at Work | 2021
+  Books found (filtered): 7
+
+============================================================
+[29/46] Skill: personal development (for employment support worker)
+============================================================
+  Query (default): personal development employment support worker The technique...
+  Query (practical): personal development employment support worker practical gui...
+  Query (handbook): personal development employment support worker handbook...
+    [WRONG OCCUPATION] Healthcare Support Workers
+    [WRONG OCCUPATION] The Routledge International Handbook of Social Wor
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): personal development The techniques and methods used to impr...
+  Query (practical): personal development practical guide professional...
+  Query (handbook): personal development handbook...
+    [WRONG OCCUPATION] Developing Leadership Skills for Health and Social
+    [WRONG OCCUPATION] Developing Assertiveness Skills for Health and Soc
+    [POOR DESC] Improving Wellbeing in Patients With Chronic Condi
+    [WRONG OCCUPATION] Transnational Approaches to Bilingual and Second L
+    [WRONG OCCUPATION] Future Prospects of Learning in the Clinical Envir
+    [TOO SHORT] Coach Myself Happy (63 pages)
+  google_books: 7 books after fallback
+    HowExpert Guide to Personal Development: 1.00
+    The Self-Help and Personal Development: 0.99
+    Personality Development Guide for Studen: 0.96
+    Handbook for Personal Development: 0.95
+    A Handbook for Support Workers in Health: 0.59
+    Feminism and Sorority from the Perspecti: 0.43
+    Positive Self-Image - Overcoming Taboos : 0.11
+  [RELEVANCE] Filtered to 6 books (score >= 0.23)
+  Returning top 5 books
+    - Feminism and Sorority from the Perspective of the Book Smarter than the Devil | 2024
+    - HowExpert Guide to Personal Development | 2024
+    - A Handbook for Support Workers in Health and Social Care | 2020
+    - The Self-Help and Personal Development | 2023
+    - Handbook for Personal Development | 2021
+  Books found (filtered): 7
+
+============================================================
+[30/46] Skill: personal development (for legal guardian)
+============================================================
+  Query (default): personal development legal guardian The techniques and metho...
+  Query (practical): personal development legal guardian practical guide professi...
+  Query (handbook): personal development legal guardian handbook...
+    [WRONG OCCUPATION] Playwork in Practice
+    [WRONG OCCUPATION] Evidence-Based Practice of Palliative Medicine - E
+    [POOR DESC] Socio-emotional Skills in Relation to Aggressive a
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): personal development The techniques and methods used to impr...
+  Query (practical): personal development practical guide professional...
+  Query (handbook): personal development handbook...
+    [WRONG OCCUPATION] Developing Leadership Skills for Health and Social
+    [WRONG OCCUPATION] Developing Assertiveness Skills for Health and Soc
+    [POOR DESC] Improving Wellbeing in Patients With Chronic Condi
+    [WRONG OCCUPATION] Transnational Approaches to Bilingual and Second L
+    [WRONG OCCUPATION] Future Prospects of Learning in the Clinical Envir
+    [TOO SHORT] Coach Myself Happy (63 pages)
+  google_books: 6 books after fallback
+    HowExpert Guide to Personal Development: 0.99
+    The Self-Help and Personal Development: 0.97
+    Personality Development Guide for Studen: 0.91
+    Handbook for Personal Development: 0.84
+    Feminism and Sorority from the Perspecti: 0.25
+    Positive Self-Image - Overcoming Taboos : 0.03
+  [RELEVANCE] Filtered to 5 books (score >= 0.23)
+  Returning top 5 books
+    - Feminism and Sorority from the Perspective of the Book Smarter than the Devil | 2024
+    - HowExpert Guide to Personal Development | 2024
+    - The Self-Help and Personal Development | 2023
+    - Handbook for Personal Development | 2021
+    - Personality Development Guide for Students | 2020
+  Books found (filtered): 6
+
+============================================================
+[31/46] Skill: personal development (for social worker)
+============================================================
+  Query (default): personal development social worker The techniques and method...
+  Query (practical): personal development social worker practical guide professio...
+  Query (handbook): personal development social worker handbook...
+    [WRONG OCCUPATION] Developing Leadership Skills for Health and Social
+    [WRONG OCCUPATION] Developing Assertiveness Skills for Health and Soc
+    [WRONG OCCUPATION] Transnational Approaches to Bilingual and Second L
+    [WRONG OCCUPATION] The Routledge International Handbook of Social Wor
+    [WRONG OCCUPATION] The Scottish Social Worker's Practice Learning Han
+    [WRONG OCCUPATION] The Scottish Social Worker’s Practice Learning Han
+  google_books: 3 books after hard filters
+    Evidencing Cpd: 0.71
+    Studying for your Social Work Apprentice: 0.39
+    Social Work for Women Poverty-Alleviatio: 0.01
+  [RELEVANCE] Filtered to 2 books (score >= 0.3)
+  Returning top 2 books
+    - Evidencing Cpd | 2025
+    - Studying for your Social Work Apprenticeship | 2026
+  Books found (filtered): 3
+
+============================================================
+[32/46] Skill: communication principles (for client relations manager)
+============================================================
+  Query (default): communication principles client relations manager The set of...
+  Query (practical): communication principles client relations manager practical ...
+  Query (handbook): communication principles client relations manager handbook...
+    [WRONG OCCUPATION] Quick Review Series For B.Sc. Nursing: Semester I 
+    [WRONG OCCUPATION] Potter and Perry's Canadian Fundamentals of Nursin
+  google_books: 4 books after hard filters
+    Ewles and Simnett's Promoting Health: A : 0.13
+    Communication Skills: 0.13
+    Study Guide to Advertising and Promotion: 0.12
+    Effective Communication Skills: 0.08
+  [RELEVANCE] Filtered to 0 books (score >= 0.3)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 4
+
+============================================================
+[33/46] Skill: communication principles (for marketing manager)
+============================================================
+  Query (default): communication principles marketing manager The set of common...
+  Query (practical): communication principles marketing manager practical guide p...
+  Query (handbook): communication principles marketing manager handbook...
+    [POOR DESC] Power Talk
+    [WRONG OCCUPATION] Communication Basics
+    [WRONG OCCUPATION] Civil Engineer's Handbook of Professional Practice
+    [WRONG OCCUPATION] Communicating Construction
+  google_books: 8 books after hard filters
+    Study Guide to Marketing Management: 0.85
+    Mastering the Art of Communication: Tech: 0.81
+    The Art of Effective Communication: Unlo: 0.64
+    The Art of Effective Communication: 0.56
+    Marketing Communication: 0.53
+    Communication Strategies: 0.50
+    Principles of Strategic Communication: 0.42
+    Public Sector Marketing Communications V: 0.00
+  [RELEVANCE] Filtered to 7 books (score >= 0.3)
+  Returning top 5 books
+    - Study Guide to Marketing Management | 2024
+    - The Art of Effective Communication: Unlocking Your Potential | 2023
+    - Communication Strategies | 2025
+    - Principles of Strategic Communication | 2021
+    - Marketing Communication | 2025
+  Books found (filtered): 8
+
+============================================================
+[34/46] Skill: communication principles (for elderly home manager)
+============================================================
+  Query (default): communication principles elderly home manager The set of com...
+  Query (practical): communication principles elderly home manager practical guid...
+  Query (handbook): communication principles elderly home manager handbook...
+    [WRONG OCCUPATION] Leadership Roles and Management Functions in Nursi
+    [WRONG OCCUPATION] Critical Care Nursing
+    [WRONG OCCUPATION] Quick Review Series For B.Sc. Nursing: Semester I 
+    [WRONG OCCUPATION] Oxford Textbook of Palliative Nursing
+    [WRONG OCCUPATION] Tabbner's Nursing Care
+    [WRONG OCCUPATION] My Communication Skills are a Hot Mess
+    [WRONG OCCUPATION] Nursing Practice
+    [WRONG OCCUPATION] Quality Improvement: A Guide for Integration in Nu
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication principles The set of commonly shared principl...
+  Query (practical): communication principles practical guide professional...
+  Query (handbook): communication principles handbook...
+    [WRONG OCCUPATION] Redfern's Nursing Older People
+    [WRONG OCCUPATION] Community and Public Health Education Methods: A P
+    [WRONG OCCUPATION] Nutrition Counseling and Education Skills: A Pract
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.16
+    Handbook on Public Speaking, Presentatio: 0.01
+    Concise Encyclopedia of Applied Ethics i: 0.00
+    Recontextualizing Expert Knowledge: 0.00
+    Foundations of Professional Coaching: 0.00
+    The Oxford Handbook of Mission Studies: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.23)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 6
+
+============================================================
+[35/46] Skill: communication principles (for spokesperson)
+============================================================
+  Query (default): communication principles spokesperson The set of commonly sh...
+  Query (practical): communication principles spokesperson practical guide profes...
+  Query (handbook): communication principles spokesperson handbook...
+    [WRONG OCCUPATION] Critical Care Nursing
+    [WRONG OCCUPATION] My Communication Skills are a Hot Mess
+    [WRONG OCCUPATION] Communication Basics
+    [POOR DESC] Master the Art of Effective Communication
+    [WRONG OCCUPATION] Key Skills for EFFECTIVE COMMUNICATIONS
+    [TOO SHORT] Better Conversations Every Day®: 4 Core  (48 pages)
+  google_books: 11 books after hard filters
+    Building Effective Communication Skills: 0.60
+    Cultivate and Refine Your Communication : 0.43
+    The Art of Effective Communication: Unlo: 0.36
+    21 Days of Effective Communication: 0.16
+    Communication Wisdom: 0.13
+    Effective Communication: 0.07
+    Communication Skills: 0.06
+    Keys to Effective Communication: 0.03
+    The Science Of Effective Communication: 0.03
+    Effective Communication Skills Training: 0.00
+  [RELEVANCE] Filtered to 3 books (score >= 0.3)
+  Returning top 3 books
+    - The Art of Effective Communication: Unlocking Your Potential | 2023
+    - Cultivate and Refine Your Communication Skills | 2024
+    - Building Effective Communication Skills | 2024
+  Books found (filtered): 11
+
+============================================================
+[36/46] Skill: communication principles (for activity leader)
+============================================================
+  Query (default): communication principles activity leader The set of commonly...
+  Query (practical): communication principles activity leader practical guide pro...
+  Query (handbook): communication principles activity leader handbook...
+    [WRONG OCCUPATION] Leadership Roles and Management Functions in Nursi
+    [WRONG OCCUPATION] Trauma Team Dynamics
+    [WRONG OCCUPATION] Health System Management and Leadership - E-Book
+    [WRONG OCCUPATION] Outcome Based Education: A Practical Guide for Hig
+    [WRONG OCCUPATION] The Rockstar IT Leader Handbook
+    [WRONG OCCUPATION] Unlocking the Leader Within: A Medical Student's G
+  google_books: 1 books after hard filters
+  [FALLBACK] Only 1 books, trying generic search...
+  Query (default): communication principles The set of commonly shared principl...
+  Query (practical): communication principles practical guide professional...
+  Query (handbook): communication principles handbook...
+    [WRONG OCCUPATION] Redfern's Nursing Older People
+    [WRONG OCCUPATION] Community and Public Health Education Methods: A P
+    [WRONG OCCUPATION] Nutrition Counseling and Education Skills: A Pract
+  google_books: 7 books after fallback
+    An easy approach to professional communi: 0.22
+    Handbook on Public Speaking, Presentatio: 0.02
+    Concise Encyclopedia of Applied Ethics i: 0.00
+    Recontextualizing Expert Knowledge: 0.00
+    Foundations of Professional Coaching: 0.00
+    The Oxford Handbook of Mission Studies: 0.00
+    Smart Cities Policies and Financing: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.23)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 7
+
+============================================================
+[37/46] Skill: communication principles (for communication manager)
+============================================================
+  Query (default): communication principles communication manager The set of co...
+  Query (practical): communication principles communication manager practical gui...
+  Query (handbook): communication principles communication manager handbook...
+    [WRONG OCCUPATION] Leadership Roles and Management Functions in Nursi
+    [WRONG OCCUPATION] Engineering Manager's Handbook
+  google_books: 3 books after hard filters
+    The Emerald Handbook of Computer-Mediate: 0.07
+    Concise Encyclopedia of Applied Ethics i: 0.01
+    The Strategic Communication Imperative: 0.01
+  [RELEVANCE] Filtered to 0 books (score >= 0.3)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 3
+
+============================================================
+[38/46] Skill: communication principles (for laundry and dry cleaning manager)
+============================================================
+  Query (default): communication principles laundry and dry cleaning manager Th...
+  Query (practical): communication principles laundry and dry cleaning manager pr...
+  Query (handbook): communication principles laundry and dry cleaning manager ha...
+    [WRONG OCCUPATION] My Communication Skills are a Hot Mess
+  google_books: 3 books after hard filters
+    Building Effective Communication Skills: 0.64
+    The Art of Effective Communication: Unlo: 0.55
+    The Science Of Effective Communication: 0.06
+  [RELEVANCE] Filtered to 2 books (score >= 0.3)
+  Returning top 2 books
+    - The Art of Effective Communication: Unlocking Your Potential | 2023
+    - Building Effective Communication Skills | 2024
+  Books found (filtered): 3
+
+============================================================
+[39/46] Skill: communication principles (for service manager)
+============================================================
+  Query (default): communication principles service manager The set of commonly...
+  Query (practical): communication principles service manager practical guide pro...
+  Query (handbook): communication principles service manager handbook...
+    [WRONG OCCUPATION] A Practical Guide to Service Management
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication principles The set of commonly shared principl...
+  Query (practical): communication principles practical guide professional...
+  Query (handbook): communication principles handbook...
+    [WRONG OCCUPATION] Redfern's Nursing Older People
+    [WRONG OCCUPATION] Community and Public Health Education Methods: A P
+    [WRONG OCCUPATION] Nutrition Counseling and Education Skills: A Pract
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.47
+    Handbook on Public Speaking, Presentatio: 0.06
+    Concise Encyclopedia of Applied Ethics i: 0.00
+    Recontextualizing Expert Knowledge: 0.00
+    The Oxford Handbook of Mission Studies: 0.00
+    Foundations of Professional Coaching: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 6
+
+============================================================
+[40/46] Skill: communication principles (for promotion manager)
+============================================================
+  Query (default): communication principles promotion manager The set of common...
+  Query (practical): communication principles promotion manager practical guide p...
+  Query (handbook): communication principles promotion manager handbook...
+    [WRONG OCCUPATION] Leadership Roles and Management Functions in Nursi
+    [SPAM] Conflict Sparks Change
+    [WRONG OCCUPATION] Leadership Approaches in Global Hospitality and To
+    [WRONG OCCUPATION] Engineering Manager's Handbook
+    [POOR DESC] Strategic Advertising Management
+  google_books: 2 books after hard filters
+  [FALLBACK] Only 2 books, trying generic search...
+  Query (default): communication principles The set of commonly shared principl...
+  Query (practical): communication principles practical guide professional...
+  Query (handbook): communication principles handbook...
+    [WRONG OCCUPATION] Redfern's Nursing Older People
+    [WRONG OCCUPATION] Community and Public Health Education Methods: A P
+    [WRONG OCCUPATION] Nutrition Counseling and Education Skills: A Pract
+  google_books: 8 books after fallback
+    An easy approach to professional communi: 0.32
+    Ewles and Simnett's Promoting Health: A : 0.15
+    Handbook on Public Speaking, Presentatio: 0.05
+    Concise Encyclopedia of Applied Ethics i: 0.00
+    Recontextualizing Expert Knowledge: 0.00
+    The Oxford Handbook of Mission Studies: 0.00
+    Foundations of Professional Coaching: 0.00
+    Smart Cities Policies and Financing: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 8
+
+============================================================
+[41/46] Skill: communication principles (for business service manager)
+============================================================
+  Query (default): communication principles business service manager The set of...
+  Query (practical): communication principles business service manager practical ...
+  Query (handbook): communication principles business service manager handbook...
+    [WRONG OCCUPATION] A Practical Guide to Service Management
+    [WRONG OCCUPATION] An Education in Service Management - A guide to bu
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication principles The set of commonly shared principl...
+  Query (practical): communication principles practical guide professional...
+  Query (handbook): communication principles handbook...
+    [WRONG OCCUPATION] Redfern's Nursing Older People
+    [WRONG OCCUPATION] Community and Public Health Education Methods: A P
+    [WRONG OCCUPATION] Nutrition Counseling and Education Skills: A Pract
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.61
+    Handbook on Public Speaking, Presentatio: 0.08
+    Concise Encyclopedia of Applied Ethics i: 0.00
+    Recontextualizing Expert Knowledge: 0.00
+    The Oxford Handbook of Mission Studies: 0.00
+    Foundations of Professional Coaching: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 6
+
+============================================================
+[42/46] Skill: communication principles (for social services manager)
+============================================================
+  Query (default): communication principles social services manager The set of ...
+  Query (practical): communication principles social services manager practical g...
+  Query (handbook): communication principles social services manager handbook...
+    [WRONG OCCUPATION] Leadership Roles and Management Functions in Nursi
+    [WRONG OCCUPATION] All About SEMH: A Practical Guide for Secondary Te
+  google_books: 0 books after hard filters
+  [FALLBACK] Only 0 books, trying generic search...
+  Query (default): communication principles The set of commonly shared principl...
+  Query (practical): communication principles practical guide professional...
+  Query (handbook): communication principles handbook...
+    [WRONG OCCUPATION] Redfern's Nursing Older People
+    [WRONG OCCUPATION] Community and Public Health Education Methods: A P
+    [WRONG OCCUPATION] Nutrition Counseling and Education Skills: A Pract
+  google_books: 6 books after fallback
+    An easy approach to professional communi: 0.32
+    Handbook on Public Speaking, Presentatio: 0.04
+    Concise Encyclopedia of Applied Ethics i: 0.00
+    Recontextualizing Expert Knowledge: 0.00
+    The Oxford Handbook of Mission Studies: 0.00
+    Foundations of Professional Coaching: 0.00
+  [RELEVANCE] Filtered to 1 books (score >= 0.23)
+  Returning top 1 books
+    - An easy approach to professional communication | 2020
+  Books found (filtered): 6
+
+============================================================
+[43/46] Skill: communication principles (for advertising manager)
+============================================================
+  Query (default): communication principles advertising manager The set of comm...
+  Query (practical): communication principles advertising manager practical guide...
+  Query (handbook): communication principles advertising manager handbook...
+    [POOR DESC] Power Talk
+  google_books: 5 books after hard filters
+    Mastering the Art of Communication: Tech: 0.78
+    Advertising Management: 0.65
+    The Art of Effective Communication: Unlo: 0.59
+    Principles of Strategic Communication: 0.56
+    Communicating Risk and Safety: 0.00
+  [RELEVANCE] Filtered to 4 books (score >= 0.3)
+  Returning top 4 books
+    - Advertising Management | 2024
+    - The Art of Effective Communication: Unlocking Your Potential | 2023
+    - Principles of Strategic Communication | 2021
+    - Mastering the Art of Communication: Techniques for Effective Listening, Persuasion, and Conflict Resolution | 2024
+  Books found (filtered): 5
+
+============================================================
+[44/46] Skill: communication principles (for public relations manager)
+============================================================
+  Query (default): communication principles public relations manager The set of...
+  Query (practical): communication principles public relations manager practical ...
+  Query (handbook): communication principles public relations manager handbook...
+    [WRONG OCCUPATION] Managing Public Relations
+    [WRONG OCCUPATION] Introduction to Public Relations
+    [WRONG OCCUPATION] Managing Public Relations
+  google_books: 5 books after hard filters
+    Strategic Communication: 0.10
+    The Public Relations Handbook: 0.06
+    Histories of Political Public Relations: 0.02
+    Concise Encyclopedia of Applied Ethics i: 0.01
+    The Strategic Communication Imperative: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.3)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 5
+
+============================================================
+[45/46] Skill: communication principles (for garage manager)
+============================================================
+  Query (default): communication principles garage manager The set of commonly ...
+  Query (practical): communication principles garage manager practical guide prof...
+  Query (handbook): communication principles garage manager handbook...
+    [WRONG OCCUPATION] The Communicative Engineer
+    [WRONG OCCUPATION] Communication Basics
+  google_books: 2 books after hard filters
+  [FALLBACK] Only 2 books, trying generic search...
+  Query (default): communication principles The set of commonly shared principl...
+  Query (practical): communication principles practical guide professional...
+  Query (handbook): communication principles handbook...
+    [WRONG OCCUPATION] Redfern's Nursing Older People
+    [WRONG OCCUPATION] Community and Public Health Education Methods: A P
+    [WRONG OCCUPATION] Nutrition Counseling and Education Skills: A Pract
+  google_books: 8 books after fallback
+    Mastering the Art of Communication: Tech: 0.67
+    The Art of Effective Communication: Unlo: 0.36
+    An easy approach to professional communi: 0.16
+    Handbook on Public Speaking, Presentatio: 0.02
+    Recontextualizing Expert Knowledge: 0.00
+    Concise Encyclopedia of Applied Ethics i: 0.00
+    The Oxford Handbook of Mission Studies: 0.00
+    Foundations of Professional Coaching: 0.00
+  [RELEVANCE] Filtered to 2 books (score >= 0.23)
+  Returning top 2 books
+    - The Art of Effective Communication: Unlocking Your Potential | 2023
+    - Mastering the Art of Communication: Techniques for Effective Listening, Persuasion, and Conflict Resolution | 2024
+  Books found (filtered): 8
+
+============================================================
+[46/46] Skill: communication principles (for checkout supervisor)
+============================================================
+  Query (default): communication principles checkout supervisor The set of comm...
+  Query (practical): communication principles checkout supervisor practical guide...
+  Query (handbook): communication principles checkout supervisor handbook...
+    [WRONG OCCUPATION] Communication Basics
+    [WRONG OCCUPATION] Supporting Students with Significant Disabilities 
+  google_books: 2 books after hard filters
+  [FALLBACK] Only 2 books, trying generic search...
+  Query (default): communication principles The set of commonly shared principl...
+  Query (practical): communication principles practical guide professional...
+  Query (handbook): communication principles handbook...
+    [WRONG OCCUPATION] Redfern's Nursing Older People
+    [WRONG OCCUPATION] Community and Public Health Education Methods: A P
+    [WRONG OCCUPATION] Nutrition Counseling and Education Skills: A Pract
+  google_books: 8 books after fallback
+    An easy approach to professional communi: 0.15
+    Effective Communication: 0.05
+    Handbook on Public Speaking, Presentatio: 0.02
+    Developing Your Communication Skills in : 0.01
+    Concise Encyclopedia of Applied Ethics i: 0.00
+    Recontextualizing Expert Knowledge: 0.00
+    The Oxford Handbook of Mission Studies: 0.00
+    Foundations of Professional Coaching: 0.00
+  [RELEVANCE] Filtered to 0 books (score >= 0.23)
+  Returning top 0 books
+    (no books passed filters)
+  Books found (filtered): 8

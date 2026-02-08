@@ -9,40 +9,91 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _get_api_keys():
+    """
+    Load all available Google Books API keys from environment.
+    Supports GOOGLE_BOOKS_API_KEY, GOOGLE_BOOKS_API_KEY_2, etc.
+    """
+    keys = []
+    # Primary key
+    if key := os.getenv("GOOGLE_BOOKS_API_KEY"):
+        keys.append(key)
+    # Additional keys (GOOGLE_BOOKS_API_KEY_2, _3, etc.)
+    for i in range(2, 10):
+        if key := os.getenv(f"GOOGLE_BOOKS_API_KEY_{i}"):
+            keys.append(key)
+    return keys
+
+
 class GoogleBooksClient:
-    """Google Books API client using requests."""
+    """Google Books API client using requests with key rotation."""
 
     SOURCE_NAME = "google_books"
     BASE_URL = "https://www.googleapis.com/books/v1/volumes"
 
+    def __init__(self):
+        self._api_keys = _get_api_keys()
+        self._current_key_index = 0
+        if not self._api_keys:
+            raise RuntimeError("No Google Books API keys found in environment")
+        print(f"  [API] Loaded {len(self._api_keys)} Google Books API key(s)")
+
+    def _get_api_key(self):
+        """Get the current API key."""
+        return self._api_keys[self._current_key_index]
+
+    def _rotate_key(self):
+        """Rotate to the next API key. Returns True if rotation happened."""
+        if len(self._api_keys) > 1:
+            old_index = self._current_key_index
+            self._current_key_index = (self._current_key_index + 1) % len(self._api_keys)
+            print(f"  [API] Rotated from key {old_index + 1} to key {self._current_key_index + 1}")
+            return True
+        return False
+
     def _get_with_backoff(self, params, max_attempts=8):
         """
         Make a GET request with retry/backoff for 429 + 5xx.
-        Respects Retry-After header when present.
+        Rotates API keys on 429 errors before backing off.
         """
         last_response = None
+        keys_tried = 0
 
         for attempt in range(1, max_attempts + 1):
+            # Ensure current key is in params
+            params["key"] = self._get_api_key()
             last_response = requests.get(self.BASE_URL, params=params, timeout=20)
 
             # Success
             if last_response.status_code == 200:
                 return last_response
 
-            # Retry on rate limit / temporary server errors
-            if last_response.status_code in (429, 500, 502, 503, 504):
+            # Rate limit - try rotating key first
+            if last_response.status_code == 429:
+                if keys_tried < len(self._api_keys) and self._rotate_key():
+                    keys_tried += 1
+                    continue  # Retry immediately with new key
+                
+                # All keys exhausted, fall back to backoff
                 retry_after = last_response.headers.get("Retry-After")
-
                 if retry_after:
                     try:
                         sleep_s = float(retry_after)
                     except ValueError:
                         sleep_s = 1.0
                 else:
-                    # 1, 2, 4, 8... seconds (capped) + jitter
                     base = min(60, 2 ** (attempt - 1))
                     sleep_s = base + random.uniform(0, 0.5 * base)
 
+                print(f"  [API] All keys rate-limited, waiting {sleep_s:.1f}s...")
+                time.sleep(max(1.0, sleep_s))
+                keys_tried = 0  # Reset for next round
+                continue
+
+            # Server errors - backoff without key rotation
+            if last_response.status_code in (500, 502, 503, 504):
+                base = min(60, 2 ** (attempt - 1))
+                sleep_s = base + random.uniform(0, 0.5 * base)
                 time.sleep(max(1.0, sleep_s))
                 continue
 
@@ -61,7 +112,6 @@ class GoogleBooksClient:
         params = {
             "q": query,
             "maxResults": 1,  # Minimal fetch, we only want totalItems
-            "key": os.getenv("GOOGLE_BOOKS_API_KEY"),
         }
 
         response = self._get_with_backoff(params)
@@ -85,10 +135,7 @@ class GoogleBooksClient:
                 "startIndex": start_index,
             }
 
-            params["key"] = os.getenv("GOOGLE_BOOKS_API_KEY")
-
-            response = requests.get(self.BASE_URL, params=params)
-            response.raise_for_status()
+            response = self._get_with_backoff(params)
 
             data = response.json()
             items = data.get("items", [])
