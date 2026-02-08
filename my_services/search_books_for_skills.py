@@ -44,6 +44,17 @@ from my_tools.db import get_db_connection
 _config = {"semantic_model": "cohere"}
 
 
+def update_google_books_total(conn, skill_uri: str, total: int):
+    """Update the google_books_total column for a skill (popularity signal)."""
+    sql = """
+        UPDATE skills 
+        SET google_books_total = %s 
+        WHERE uri = %s
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql, (total, skill_uri))
+
+
 def set_semantic_model(model: str):
     """Set the semantic model to use for similarity calculations."""
     _config["semantic_model"] = model
@@ -475,6 +486,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
             # Multi-query strategy: try different query variants and dedupe
             all_books = []
             seen_isbns = set()
+            max_total_items = 0  # Track Google Books total for popularity signal
 
             query_variants = ["default", "practical", "handbook"]
             books_per_variant = book_limit // len(query_variants)
@@ -484,7 +496,10 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                 print(f"  Query ({variant}): {query[:60]}...")
 
                 try:
-                    books = client.search(query, books_per_variant)
+                    books, total_items = client.search(query, books_per_variant)
+                    # Track the highest total (default query is most representative)
+                    if variant == "default":
+                        max_total_items = total_items
                 except Exception as e:
                     print(f"  [ERROR] {source_name} ({variant}) failed: {e}")
                     continue
@@ -548,6 +563,11 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                     book_id=book_id,
                     rank=rank,
                 )
+
+            # Update Google Books total count for star rating
+            if max_total_items > 0:
+                update_google_books_total(conn, skill["uri"], max_total_items)
+                print(f"  Google Books total: {max_total_items:,}")
 
             conn.commit()
 
