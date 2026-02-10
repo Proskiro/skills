@@ -50,6 +50,21 @@ MIN_RELEVANCE_SCORE = 0.3
 MIN_RELEVANCE_SCORE_FALLBACK = 0.16  # Lower threshold for fallback searches
 
 
+def ensure_connection(conn):
+    """Check if connection is alive, reconnect if needed."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+        return conn
+    except Exception:
+        print("  [DB] Connection lost, reconnecting...")
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return get_db_connection()
+
+
 def update_google_books_total(conn, skill_uri: str, total: int):
     """Update the google_books_total column for a skill (popularity signal).
     
@@ -402,7 +417,7 @@ def description_quality_check(book: Dict) -> bool:
     return True
 
 
-def fetch_skills(limit: int = 50) -> List[Dict]:
+def fetch_skills(limit: int = 50, featured_only: bool = False) -> List[Dict]:
     sql = """
         SELECT s.uri,
         s.skill_code,
@@ -422,10 +437,10 @@ def fetch_skills(limit: int = 50) -> List[Dict]:
         AND s.description is not NULL
         AND o.uri is not NULL
         AND s.is_leaf = TRUE
-
+        {featured_filter}
         ORDER BY skill_code
         LIMIT %s;
-    """
+    """.format(featured_filter="AND o.is_featured = TRUE" if featured_only else "")
 
     conn = get_db_connection()
     with conn.cursor() as cur:
@@ -454,6 +469,7 @@ def fetch_skills(limit: int = 50) -> List[Dict]:
         
         skills.append({
             "uri": skill_uri,
+            "occupation_uri": occupation_uri,
             "occupation_title": occupation_title,
             "skill_code": r[1],
             "title": skill_title,
@@ -545,39 +561,44 @@ def filter_books(
 def should_refresh_books(last_fetched_at) -> bool:
     if last_fetched_at is None:
         return True
-    return last_fetched_at < datetime.utcnow() - timedelta(days=30)
+    return last_fetched_at < datetime.utcnow() - timedelta(days=1)
 
 
 def has_books_from_source(
-    conn, skill_uri: str, source: str, max_age_days: int = 30
+    conn, skill_uri: str, occupation_uri: str, source: str, max_age_days: int = 1
 ) -> bool:
     """
-    Check if a skill already has books from a specific source within the freshness window.
+    Check if a skill-occupation pair already has books from a specific source within the freshness window.
     """
     sql = """
         SELECT 1
         FROM skill_book_matches sbm
         JOIN books b ON b.id = sbm.book_id
         WHERE sbm.skill_uri = %s
+          AND sbm.occupation_uri = %s
           AND b.source = %s
           AND sbm.matched_at >= NOW() - INTERVAL '%s days'
         LIMIT 1;
     """
     with conn.cursor() as cur:
-        cur.execute(sql, (skill_uri, source, max_age_days))
+        cur.execute(sql, (skill_uri, occupation_uri, source, max_age_days))
         return cur.fetchone() is not None
 
 
-def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=False):
+def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=False, max_age_days=1, featured_only=False):
     # TODO: Re-enable OpenLibraryClient() when search quality improves
     clients = [GoogleBooksClient()]
-    skills = fetch_skills(limit=skill_limit)
+    skills = fetch_skills(limit=skill_limit, featured_only=featured_only)
     results = []
 
     conn = get_db_connection()
 
+    if featured_only:
+        print("Filtering to featured occupations only")
     if force_refresh:
         print("Force refresh enabled - ignoring recently fetched check")
+    else:
+        print(f"Skipping skills fetched within the last {max_age_days} day(s)")
 
     for i, skill in enumerate(skills, start=1):
         print("\n" + "=" * 60)
@@ -589,9 +610,9 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
         for client in clients:
             source_name = client.SOURCE_NAME  # Each client should define this
 
-            # Skip if this source was recently fetched for this skill (unless force_refresh)
+            # Skip if this source was recently fetched for this skill-occupation pair (unless force_refresh)
             if not force_refresh and has_books_from_source(
-                conn, skill["uri"], source_name, max_age_days=30
+                conn, skill["uri"], skill["occupation_uri"], source_name, max_age_days=max_age_days
             ):
                 print(f"  Skipping {source_name} (recently fetched)")
                 continue
@@ -706,11 +727,15 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                 }
             )
 
+            # Ensure connection is alive before DB writes
+            conn = ensure_connection(conn)
+
             for rank, book in enumerate(top_books, start=1):
                 book_id = upsert_book(conn, book)
                 link_book_to_skill(
                     conn,
                     skill_uri=skill["uri"],
+                    occupation_uri=skill["occupation_uri"],
                     book_id=book_id,
                     rank=rank,
                 )
@@ -741,8 +766,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--skill-limit",
         type=int,
-        default=800,
-        help="Maximum number of skills to process (default: 500)",
+        default=3000,
+        help="Maximum number of skills to process (default: 3000)",
     )
     parser.add_argument(
         "--book-limit",
@@ -755,6 +780,17 @@ if __name__ == "__main__":
         type=int,
         default=2020,
         help="Minimum publication year (default: 2020)",
+    )
+    parser.add_argument(
+        "--max-age-days",
+        type=int,
+        default=1,
+        help="Skip skills fetched within this many days (default: 1)",
+    )
+    parser.add_argument(
+        "--featured-only",
+        action="store_true",
+        help="Only search skills for featured occupations",
     )
     parser.add_argument(
         "--semantic-model",
@@ -774,4 +810,6 @@ if __name__ == "__main__":
         book_limit=args.book_limit,
         min_year=args.min_year,
         force_refresh=args.force_refresh,
+        max_age_days=args.max_age_days,
+        featured_only=args.featured_only,
     )

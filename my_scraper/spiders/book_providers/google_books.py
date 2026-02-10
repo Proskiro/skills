@@ -19,7 +19,7 @@ def _get_api_keys():
     if key := os.getenv("GOOGLE_BOOKS_API_KEY"):
         keys.append(key)
     # Additional keys (GOOGLE_BOOKS_API_KEY_2, _3, etc.)
-    for i in range(2, 10):
+    for i in range(2, 21):
         if key := os.getenv(f"GOOGLE_BOOKS_API_KEY_{i}"):
             keys.append(key)
     return keys
