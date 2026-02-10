@@ -66,15 +66,15 @@ def upsert_book(conn, book):
             return cur.fetchone()[0]
 
 
-def link_book_to_skill(conn, skill_uri: str, book_id: int, rank: int):
+def link_book_to_skill(conn, skill_uri: str, occupation_uri: str, book_id: int, rank: int):
     sql = """
-    INSERT INTO skill_book_matches (skill_uri, book_id, rank, matched_at)
-    VALUES (%s, %s, %s, NOW())
-    ON CONFLICT (skill_uri, book_id)
+    INSERT INTO skill_book_matches (skill_uri, occupation_uri, book_id, rank, matched_at)
+    VALUES (%s, %s, %s, %s, NOW())
+    ON CONFLICT (skill_uri, occupation_uri, book_id)
     DO UPDATE SET
         rank = EXCLUDED.rank,
         matched_at = NOW();
     """
 
     with conn.cursor() as cur:
-        cur.execute(sql, (skill_uri, book_id, rank))
+        cur.execute(sql, (skill_uri, occupation_uri, book_id, rank))
