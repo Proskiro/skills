@@ -2,7 +2,24 @@ def upsert_book(conn, book):
     """
     Upsert a book by ISBN. Checks for existing book by isbn_10 OR isbn_13 first,
     then updates or inserts accordingly.
+    
+    Also saves free_access info if available.
     """
+    # Extract free access info if present
+    free_access = book.get("free_access") or {}
+    free_access_type = free_access.get("type")  # 'free' or 'preview'
+    free_access_url = free_access.get("read_url")
+    free_access_epub = free_access.get("epub_available", False)
+    free_access_pdf = free_access.get("pdf_available", False)
+    
+    # Check if free_access columns exist
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'books' AND column_name = 'free_access_type'
+        """)
+        has_free_columns = cur.fetchone() is not None
+    
     # First, check if book already exists by either ISBN
     find_sql = """
     SELECT id FROM books
@@ -18,51 +35,125 @@ def upsert_book(conn, book):
         if existing:
             # Update existing book
             book_id = existing[0]
-            update_sql = """
-            UPDATE books SET
-                title = %(title)s,
-                authors = %(authors)s,
-                published_year = %(published_year)s,
-                description = %(description)s,
-                updated_at = NOW()
-            WHERE id = %(book_id)s
-            RETURNING id;
-            """
-            update_params = {**book, "book_id": book_id}
+            if has_free_columns:
+                update_sql = """
+                UPDATE books SET
+                    title = %(title)s,
+                    authors = %(authors)s,
+                    published_year = %(published_year)s,
+                    description = %(description)s,
+                    free_access_type = %(free_access_type)s,
+                    free_access_url = %(free_access_url)s,
+                    free_access_source = %(free_access_source)s,
+                    free_access_epub = %(free_access_epub)s,
+                    free_access_pdf = %(free_access_pdf)s,
+                    updated_at = NOW()
+                WHERE id = %(book_id)s
+                RETURNING id;
+                """
+            else:
+                update_sql = """
+                UPDATE books SET
+                    title = %(title)s,
+                    authors = %(authors)s,
+                    published_year = %(published_year)s,
+                    description = %(description)s,
+                    updated_at = NOW()
+                WHERE id = %(book_id)s
+                RETURNING id;
+                """
+            update_params = {
+                **book,
+                "book_id": book_id,
+                "free_access_type": free_access_type,
+                "free_access_url": free_access_url,
+                "free_access_source": "google_books" if free_access_type else None,
+                "free_access_epub": free_access_epub,
+                "free_access_pdf": free_access_pdf,
+            }
             cur.execute(update_sql, update_params)
             return cur.fetchone()[0]
         else:
             # Insert new book
-            insert_sql = """
-            INSERT INTO books (
-                isbn_10,
-                isbn_13,
-                title,
-                authors,
-                published_year,
-                language_code,
-                description,
-                thumbnail,
-                source,
-                created_at,
-                updated_at
-            )
-            VALUES (
-                %(isbn_10)s,
-                %(isbn_13)s,
-                %(title)s,
-                %(authors)s,
-                %(published_year)s,
-                %(language_code)s,
-                %(description)s,
-                %(thumbnail)s,
-                %(source)s,
-                NOW(),
-                NOW()
-            )
-            RETURNING id;
-            """
-            cur.execute(insert_sql, book)
+            if has_free_columns:
+                insert_sql = """
+                INSERT INTO books (
+                    isbn_10,
+                    isbn_13,
+                    title,
+                    authors,
+                    published_year,
+                    language_code,
+                    description,
+                    thumbnail,
+                    source,
+                    free_access_type,
+                    free_access_url,
+                    free_access_source,
+                    free_access_epub,
+                    free_access_pdf,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    %(isbn_10)s,
+                    %(isbn_13)s,
+                    %(title)s,
+                    %(authors)s,
+                    %(published_year)s,
+                    %(language_code)s,
+                    %(description)s,
+                    %(thumbnail)s,
+                    %(source)s,
+                    %(free_access_type)s,
+                    %(free_access_url)s,
+                    %(free_access_source)s,
+                    %(free_access_epub)s,
+                    %(free_access_pdf)s,
+                    NOW(),
+                    NOW()
+                )
+                RETURNING id;
+                """
+            else:
+                insert_sql = """
+                INSERT INTO books (
+                    isbn_10,
+                    isbn_13,
+                    title,
+                    authors,
+                    published_year,
+                    language_code,
+                    description,
+                    thumbnail,
+                    source,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    %(isbn_10)s,
+                    %(isbn_13)s,
+                    %(title)s,
+                    %(authors)s,
+                    %(published_year)s,
+                    %(language_code)s,
+                    %(description)s,
+                    %(thumbnail)s,
+                    %(source)s,
+                    NOW(),
+                    NOW()
+                )
+                RETURNING id;
+                """
+            insert_params = {
+                **book,
+                "free_access_type": free_access_type,
+                "free_access_url": free_access_url,
+                "free_access_source": "google_books" if free_access_type else None,
+                "free_access_epub": free_access_epub,
+                "free_access_pdf": free_access_pdf,
+            }
+            cur.execute(insert_sql, insert_params)
             return cur.fetchone()[0]
 
 

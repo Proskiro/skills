@@ -181,6 +181,32 @@ class GoogleBooksClient:
                 if match:
                     year = int(match.group(0))
 
+            # Extract free access information
+            access_info = item.get("accessInfo", {})
+            viewability = access_info.get("viewability", "")
+            access_status = access_info.get("accessViewStatus", "")
+            epub_info = access_info.get("epub", {})
+            pdf_info = access_info.get("pdf", {})
+            
+            # Determine free access type
+            free_access = None
+            if access_status == "FULL_PUBLIC_DOMAIN" or viewability == "ALL_PAGES":
+                free_access = {
+                    "type": "free",
+                    "read_url": access_info.get("webReaderLink"),
+                    "epub_available": epub_info.get("isAvailable", False),
+                    "epub_download": epub_info.get("downloadLink"),
+                    "pdf_available": pdf_info.get("isAvailable", False),
+                    "pdf_download": pdf_info.get("downloadLink"),
+                }
+            elif viewability == "PARTIAL" or access_status == "SAMPLE":
+                free_access = {
+                    "type": "preview",
+                    "read_url": access_info.get("webReaderLink"),
+                    "epub_available": False,
+                    "pdf_available": False,
+                }
+
             results.append(
                 {
                     "source": "google_books",
@@ -200,6 +226,7 @@ class GoogleBooksClient:
                     "ratings_count": volume_info.get("ratingsCount"),
                     "thumbnail": volume_info.get("imageLinks", {}).get("thumbnail"),
                     "semantic_relevance_score": None,  # To be filled later if needed
+                    "free_access": free_access,  # Free/preview access info
                     "metadata": item,
                 }
             )
