@@ -224,7 +224,7 @@ class GoogleBooksClient:
                     "page_count": volume_info.get("pageCount"),
                     "average_rating": volume_info.get("averageRating"),
                     "ratings_count": volume_info.get("ratingsCount"),
-                    "thumbnail": volume_info.get("imageLinks", {}).get("thumbnail"),
+                    "thumbnail": (volume_info.get("imageLinks", {}).get("thumbnail") or "").replace("http://", "https://") or None,
                     "semantic_relevance_score": None,  # To be filled later if needed
                     "free_access": free_access,  # Free/preview access info
                     "metadata": item,
