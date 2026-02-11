@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN apt-get update && apt-get install -y curl && \
+    curl -o /app/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem && \
+    apt-get clean
+
+ENV SSL_CERT_PATH=/app/global-bundle.pem
+
+COPY . .
+
+CMD ["scrapy", "crawl", "esco_occupations"]
+
