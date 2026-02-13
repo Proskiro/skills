@@ -26,6 +26,10 @@ class EscoOccupationsSpider(scrapy.Spider):
     ]
     visited_uris = set()
 
+    def __init__(self, freshness_days=None, *args, **kwargs):
+        super(EscoOccupationsSpider, self).__init__(*args, **kwargs)
+        self.freshness_days = int(freshness_days) if freshness_days else 30
+
     def parse(self, response):
         data = json.loads(response.body)
         uri = data.get("uri")
@@ -62,8 +66,8 @@ class EscoOccupationsSpider(scrapy.Spider):
             yield scrapy.Request(url=next_url, callback=self.parse)
 
             # ⏱ freshness check AFTER traversal
-        if occupation_is_fresh(data.get("uri"), days=30):
-            self.logger.debug("Skipping fresh occupation: %s", data.get("uri"))
+        if occupation_is_fresh(data.get("uri"), days=self.freshness_days):
+            self.logger.debug("Skipping fresh occupation: %s (freshness_days=%d)", data.get("uri"), self.freshness_days)
             return
 
         item = OccupationLoader(response=response)

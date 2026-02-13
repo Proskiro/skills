@@ -14,5 +14,6 @@ ENV SSL_CERT_PATH=/app/global-bundle.pem
 
 COPY . .
 
-CMD ["scrapy", "crawl", "esco_occupations"]
+ENTRYPOINT ["scrapy", "crawl", "esco_occupations"]
+CMD ["-days", "freshness_days=30"]
 
