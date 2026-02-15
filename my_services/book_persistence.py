@@ -67,7 +67,7 @@ def upsert_book(conn, book):
                 "book_id": book_id,
                 "free_access_type": free_access_type,
                 "free_access_url": free_access_url,
-                "free_access_source": "google_books" if free_access_type else None,
+                "free_access_source": book.get("source") if free_access_type else None,
                 "free_access_epub": free_access_epub,
                 "free_access_pdf": free_access_pdf,
             }
@@ -149,7 +149,7 @@ def upsert_book(conn, book):
                 **book,
                 "free_access_type": free_access_type,
                 "free_access_url": free_access_url,
-                "free_access_source": "google_books" if free_access_type else None,
+                "free_access_source": book.get("source") if free_access_type else None,
                 "free_access_epub": free_access_epub,
                 "free_access_pdf": free_access_pdf,
             }
