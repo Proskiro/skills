@@ -104,6 +104,23 @@ class GoogleBooksClient:
         last_response.raise_for_status()
         return last_response  # not reached
 
+    def fetch_description_by_isbn(self, isbn: str):
+        """Look up a single book by ISBN and return its description.
+
+        Used to enrich Open Library results that lack descriptions.
+        Returns None if not found or no description available.
+        """
+        params = {"q": f"isbn:{isbn}", "maxResults": 1}
+        try:
+            response = self._get_with_backoff(params)
+            data = response.json()
+            items = data.get("items", [])
+            if items:
+                return items[0].get("volumeInfo", {}).get("description")
+        except Exception:
+            pass
+        return None
+
     def get_total_results(self, query: str) -> int:
         """Get total number of books matching a query (without fetching results).
 
