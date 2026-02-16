@@ -54,6 +54,85 @@ _config = {"semantic_model": "cohere"}
 MIN_RELEVANCE_SCORE = 0.3
 MIN_RELEVANCE_SCORE_FALLBACK = 0.16  # Lower threshold for fallback searches
 
+# Skill expansions: maps short/ambiguous skill names to expanded search terms.
+# Helps book APIs understand what we're actually looking for.
+SKILL_EXPANSIONS = {
+    "mdx": "MDX Multidimensional Expressions OLAP",
+    "dax": "DAX Data Analysis Expressions Power BI",
+    "sql": "SQL Structured Query Language database",
+    "html": "HTML HyperText Markup Language web",
+    "css": "CSS Cascading Style Sheets styling",
+    "xml": "XML Extensible Markup Language",
+    "json": "JSON JavaScript Object Notation",
+    "rest": "REST RESTful API web services",
+    "soap": "SOAP Simple Object Access Protocol",
+    "ajax": "AJAX Asynchronous JavaScript",
+    "api": "API Application Programming Interface",
+    "orm": "ORM Object-Relational Mapping",
+    "mvc": "MVC Model-View-Controller",
+    "etl": "ETL Extract Transform Load data",
+    "bi": "Business Intelligence analytics",
+    "ml": "Machine Learning",
+    "ai": "Artificial Intelligence",
+    "nlp": "NLP Natural Language Processing",
+    "seo": "SEO Search Engine Optimization",
+    "crm": "CRM Customer Relationship Management",
+    "erp": "ERP Enterprise Resource Planning",
+    "ux": "UX User Experience design",
+    "ui": "UI User Interface design",
+    "qa": "QA Quality Assurance testing",
+    "ci": "CI Continuous Integration",
+    "cd": "CD Continuous Deployment",
+    "aws": "AWS Amazon Web Services cloud",
+    "gcp": "GCP Google Cloud Platform",
+    "iot": "IoT Internet of Things",
+    "vba": "VBA Visual Basic for Applications Excel",
+    "sap": "SAP enterprise software",
+    "plc": "PLC Programmable Logic Controller",
+    "bim": "BIM Building Information Modelling",
+    "cad": "CAD Computer-Aided Design",
+    "cam": "CAM Computer-Aided Manufacturing",
+    "gis": "GIS Geographic Information Systems",
+    "hmi": "HMI Human-Machine Interface",
+    "scada": "SCADA Supervisory Control Data Acquisition",
+}
+
+
+def expand_skill_title(title: str) -> str:
+    """Expand abbreviated/acronym skill titles for better search results."""
+    return SKILL_EXPANSIONS.get(title.lower().strip(), title)
+
+
+def is_short_skill(title: str) -> bool:
+    """Check if a skill title is short enough to require exact mention in books."""
+    return len(title.strip()) <= 5
+
+
+def skill_mentioned_in_book(skill_title: str, book: Dict) -> bool:
+    """
+    For short/acronym skill names, require the skill to appear in the book's
+    title or description. Prevents e.g. SQL books matching for MDX skill.
+    """
+    skill_lower = skill_title.lower().strip()
+    title = (book.get("title") or "").lower()
+    desc = (book.get("description") or "").lower()
+    book_text = f"{title} {desc}"
+
+    # Check for the skill name itself
+    if skill_lower in book_text:
+        return True
+
+    # Also check expanded form words (e.g. "multidimensional" for MDX)
+    expansion = SKILL_EXPANSIONS.get(skill_lower, "")
+    if expansion:
+        expansion_words = [w.lower() for w in expansion.split() if len(w) > 3]
+        # Require at least 2 expansion words to match (avoids false positives)
+        matches = sum(1 for w in expansion_words if w in book_text)
+        if matches >= 2:
+            return True
+
+    return False
+
 
 def ensure_connection(conn):
     """Check if connection is alive, reconnect if needed."""
@@ -359,7 +438,7 @@ def build_search_query(skill: Dict, variant: str = "default", use_occupation: bo
         variant: Query variant - 'default', 'practical', or 'handbook'
         use_occupation: Whether to include occupation in query (False for fallback)
     """
-    title = skill["title"]
+    title = expand_skill_title(skill["title"])
     occupation = skill.get("occupation_title", "") if use_occupation else ""
 
     if variant == "practical":
@@ -493,6 +572,7 @@ def filter_books(
     min_year: int = 2020,
     require_description: bool = True,
     target_occupation: str = None,
+    skill_title: str = None,
 ) -> List[Dict]:
     """
     Hard quality filters only (no semantic filtering).
@@ -504,6 +584,7 @@ def filter_books(
         require_description: If False, skip description check
             (Open Library doesn't return descriptions in search)
         target_occupation: If provided, filter out books targeting different occupations
+        skill_title: If provided and short (<= 5 chars), require skill mention in book
     """
     filtered = []
 
@@ -556,6 +637,11 @@ def filter_books(
         # Filter out books targeting a different occupation
         if target_occupation and mentions_different_occupation(b, target_occupation):
             print(f"    [WRONG OCCUPATION] {b.get('title', '')[:50]}")
+            continue
+
+        # For short/acronym skills, require the skill to be mentioned in the book
+        if skill_title and is_short_skill(skill_title) and not skill_mentioned_in_book(skill_title, b):
+            print(f"    [NO SKILL MENTION] {b.get('title', '')[:50]}")
             continue
 
         filtered.append(b)
@@ -721,6 +807,7 @@ def _process_source(
             min_year=min_year,
             require_description=require_description,
             target_occupation=skill.get("occupation_title"),
+            skill_title=skill.get("title"),
         )
     except Exception as e:
         print(f"  [ERROR] filtering failed: {e}")
@@ -747,6 +834,7 @@ def _process_source(
                 min_year=min_year,
                 require_description=require_description,
                 target_occupation=skill.get("occupation_title"),
+                skill_title=skill.get("title"),
             )
         except Exception as e:
             print(f"  [ERROR] fallback filtering failed: {e}")
@@ -909,6 +997,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                     min_year=min_year,
                     require_description=False,
                     target_occupation=skill.get("occupation_title"),
+                    skill_title=skill.get("title"),
                 )
             except Exception as e:
                 print(f"  [ERROR] filtering failed: {e}")
@@ -934,6 +1023,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                         min_year=min_year,
                         require_description=False,
                         target_occupation=skill.get("occupation_title"),
+                        skill_title=skill.get("title"),
                     )
                 except Exception as e:
                     print(f"  [ERROR] fallback filtering failed: {e}")
@@ -947,18 +1037,28 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
 
                 print(f"  open_library: {len(ol_filtered)} books after fallback")
 
-            # Enrichment waterfall — fetch descriptions for books that passed hard filters
+            # Enrichment waterfall — fetch missing fields from Google Books
             if ol_filtered:
-                # Layer 1: Google Books ISBN lookup (free, best coverage)
-                missing = [b for b in ol_filtered if not b.get("description")]
-                if missing:
-                    print(f"  [ENRICH] Google Books ISBN lookup for {len(missing)} books...")
-                    for book in missing:
+                # Layer 1: Google Books ISBN lookup (description, free access, thumbnail)
+                needs_enrichment = [
+                    b for b in ol_filtered
+                    if not b.get("description") or not b.get("free_access") or not b.get("thumbnail")
+                ]
+                if needs_enrichment:
+                    print(f"  [ENRICH] Google Books ISBN lookup for {len(needs_enrichment)} books...")
+                    for book in needs_enrichment:
                         isbn = book.get("isbn_13") or book.get("isbn_10")
                         if isbn:
-                            desc = google_client.fetch_description_by_isbn(isbn)
-                            if desc:
-                                book["description"] = desc
+                            enrichment = google_client.fetch_enrichment_by_isbn(isbn)
+                            if enrichment:
+                                if not book.get("description") and enrichment.get("description"):
+                                    book["description"] = enrichment["description"]
+                                if not book.get("free_access") and enrichment.get("free_access"):
+                                    book["free_access"] = enrichment["free_access"]
+                                if not book.get("thumbnail") and enrichment.get("thumbnail"):
+                                    book["thumbnail"] = enrichment["thumbnail"]
+                                if not book.get("page_count") and enrichment.get("page_count"):
+                                    book["page_count"] = enrichment["page_count"]
                                 print(f"    [Google] Enriched: {book.get('title', '')[:50]}")
 
                 # Layer 2: Open Library Works API (free, already have work IDs)
