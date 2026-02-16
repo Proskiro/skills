@@ -15,4 +15,4 @@ ENV SSL_CERT_PATH=/app/global-bundle.pem
 COPY . .
 
 ENTRYPOINT ["python", "-m", "my_services.search_books_for_skills"]
-CMD ["--max-age-days", "1"]
+CMD ["--freshness_days", "1"]

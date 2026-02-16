@@ -1143,7 +1143,7 @@ if __name__ == "__main__":
         help="Minimum publication year (default: 2020)",
     )
     parser.add_argument(
-        "--max-age-days",
+        "--freshness_days",
         type=int,
         default=1,
         help="Skip skills fetched within this many days (default: 1)",
