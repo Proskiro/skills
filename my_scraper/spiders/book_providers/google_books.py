@@ -110,13 +110,64 @@ class GoogleBooksClient:
         Used to enrich Open Library results that lack descriptions.
         Returns None if not found or no description available.
         """
+        enrichment = self.fetch_enrichment_by_isbn(isbn)
+        if enrichment:
+            return enrichment.get("description")
+        return None
+
+    def fetch_enrichment_by_isbn(self, isbn: str):
+        """Look up a book by ISBN and return enrichment fields.
+
+        Returns a dict with description, free_access, thumbnail, and page_count,
+        or None if not found.
+        """
         params = {"q": f"isbn:{isbn}", "maxResults": 1}
         try:
             response = self._get_with_backoff(params)
             data = response.json()
             items = data.get("items", [])
-            if items:
-                return items[0].get("volumeInfo", {}).get("description")
+            if not items:
+                return None
+
+            item = items[0]
+            volume_info = item.get("volumeInfo", {})
+            access_info = item.get("accessInfo", {})
+
+            # Free access info
+            viewability = access_info.get("viewability", "")
+            access_status = access_info.get("accessViewStatus", "")
+            epub_info = access_info.get("epub", {})
+            pdf_info = access_info.get("pdf", {})
+
+            free_access = None
+            if access_status == "FULL_PUBLIC_DOMAIN" or viewability == "ALL_PAGES":
+                free_access = {
+                    "type": "free",
+                    "read_url": access_info.get("webReaderLink"),
+                    "epub_available": epub_info.get("isAvailable", False),
+                    "epub_download": epub_info.get("downloadLink"),
+                    "pdf_available": pdf_info.get("isAvailable", False),
+                    "pdf_download": pdf_info.get("downloadLink"),
+                }
+            elif viewability == "PARTIAL" or access_status == "SAMPLE":
+                free_access = {
+                    "type": "preview",
+                    "read_url": access_info.get("webReaderLink"),
+                    "epub_available": False,
+                    "pdf_available": False,
+                }
+
+            # Thumbnail
+            thumbnail = (
+                volume_info.get("imageLinks", {}).get("thumbnail") or ""
+            ).replace("http://", "https://") or None
+
+            return {
+                "description": volume_info.get("description"),
+                "free_access": free_access,
+                "thumbnail": thumbnail,
+                "page_count": volume_info.get("pageCount"),
+            }
         except Exception:
             pass
         return None
