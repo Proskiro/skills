@@ -14,6 +14,5 @@ ENV SSL_CERT_PATH=/app/global-bundle.pem
 
 COPY . .
 
-ENTRYPOINT ["scrapy", "crawl"]
-CMD ["esco_occupations", "-a", "freshness_days=30"]
-
+ENTRYPOINT ["python", "-m", "my_services.search_books_for_skills"]
+CMD ["--max-age-days", "1"]
