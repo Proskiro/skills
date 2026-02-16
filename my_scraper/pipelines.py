@@ -168,7 +168,7 @@ class PostgresPipeline:
             try:
                 query = """
                 INSERT INTO skills (
-                    uri, preferred_title, alt_label, description, skill_type, 
+                    uri, preferred_title, alt_label, description, skill_type,
                     skill_code, class_name, reuse_level, scope_note, broader_skill_uri,
                     is_leaf, is_functional_leaf
                 )
@@ -185,7 +185,8 @@ class PostgresPipeline:
                     scope_note            = COALESCE(EXCLUDED.scope_note, skills.scope_note),
                     broader_skill_uri     = COALESCE(EXCLUDED.broader_skill_uri, skills.broader_skill_uri),
                     is_leaf               = EXCLUDED.is_leaf,
-                    is_functional_leaf    = EXCLUDED.is_functional_leaf;
+                    is_functional_leaf    = EXCLUDED.is_functional_leaf,
+                    updated_at            = now();
                 """
                 execute_values(self.cursor, query, [values])
             except Exception as e:

@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 import scrapy
 
 from my_tools import extract_root_code, generate_skill_code
+from my_tools.db import skill_is_fresh
 
 from ...items import SkillHierarchyItem
 from ...loaders import SkillLoader
@@ -22,6 +23,10 @@ class EscoSkillsSpider(scrapy.Spider):
 
     visited_uris = set()
     code_lookup = {}  # store parent_uri -> generated code
+
+    def __init__(self, freshness_days=None, *args, **kwargs):
+        super(EscoSkillsSpider, self).__init__(*args, **kwargs)
+        self.freshness_days = int(freshness_days) if freshness_days else 30
 
     def start_requests(self):
         for url in self.start_urls:
@@ -104,10 +109,7 @@ class EscoSkillsSpider(scrapy.Spider):
         item.add_value("is_leaf", is_leaf)
         item.add_value("is_functional_leaf", is_functional_leaf)
 
-        # Yield the skill
-        yield item.load_item()
-
-        # Crawl narrower skills
+        # Crawl narrower skills (always traverse, even if this node is fresh)
         narrower_links = []
         for key in ("narrowerConcept", "narrowerSkill"):
             if hierarchy.get(key):
@@ -132,6 +134,14 @@ class EscoSkillsSpider(scrapy.Spider):
                 meta={"root_url": response.meta.get("root_url")},
                 callback=self.parse,
             )
+
+        # Freshness check AFTER traversal
+        if skill_is_fresh(uri, days=self.freshness_days):
+            self.logger.debug("Skipping fresh skill: %s (freshness_days=%d)", uri, self.freshness_days)
+            return
+
+        # Yield the skill
+        yield item.load_item()
 
     def _get_skill_type(self, response, item, hierarchy):
         skill_type = None
