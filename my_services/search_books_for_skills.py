@@ -29,6 +29,7 @@ CLI Arguments:
 
 import argparse
 import random
+import re
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List
@@ -57,6 +58,7 @@ MIN_RELEVANCE_SCORE_FALLBACK = 0.16  # Lower threshold for fallback searches
 # Skill expansions: maps short/ambiguous skill names to expanded search terms.
 # Helps book APIs understand what we're actually looking for.
 SKILL_EXPANSIONS = {
+    # Tech acronyms
     "mdx": "MDX Multidimensional Expressions OLAP",
     "dax": "DAX Data Analysis Expressions Power BI",
     "sql": "SQL Structured Query Language database",
@@ -71,6 +73,11 @@ SKILL_EXPANSIONS = {
     "orm": "ORM Object-Relational Mapping",
     "mvc": "MVC Model-View-Controller",
     "etl": "ETL Extract Transform Load data",
+    "vba": "VBA Visual Basic for Applications Excel",
+    "plc": "PLC Programmable Logic Controller",
+    "hmi": "HMI Human-Machine Interface",
+    "scada": "SCADA Supervisory Control Data Acquisition",
+    # Business/analytics acronyms
     "bi": "Business Intelligence analytics",
     "ml": "Machine Learning",
     "ai": "Artificial Intelligence",
@@ -83,24 +90,67 @@ SKILL_EXPANSIONS = {
     "qa": "QA Quality Assurance testing",
     "ci": "CI Continuous Integration",
     "cd": "CD Continuous Deployment",
+    # Cloud/infra acronyms
     "aws": "AWS Amazon Web Services cloud",
     "gcp": "GCP Google Cloud Platform",
     "iot": "IoT Internet of Things",
-    "vba": "VBA Visual Basic for Applications Excel",
     "sap": "SAP enterprise software",
-    "plc": "PLC Programmable Logic Controller",
     "bim": "BIM Building Information Modelling",
     "cad": "CAD Computer-Aided Design",
     "cam": "CAM Computer-Aided Manufacturing",
     "gis": "GIS Geographic Information Systems",
-    "hmi": "HMI Human-Machine Interface",
-    "scada": "SCADA Supervisory Control Data Acquisition",
+    # From the missing skills list
+    "moem": "MOEM Micro-Opto-Electro-Mechanical Systems",
+    "staf": "STAF Software Testing Automation Framework",
+    "btl": "BTL below-the-line marketing technique",
+    "lisp": "Lisp programming language",
+    "prolog": "Prolog logic programming language",
+    "smalltalk": "Smalltalk object-oriented programming language",
+    "salt": "Salt SaltStack configuration management DevOps",
+    "cam software": "computer-aided manufacturing CAM software",
+    "ict communications protocols": "ICT network communications protocols TCP/IP",
+    "ict hardware specifications": "ICT computer hardware specifications",
+    "hvac": "HVAC heating ventilation air conditioning refrigeration",
 }
 
 
-def expand_skill_title(title: str) -> str:
-    """Expand abbreviated/acronym skill titles for better search results."""
-    return SKILL_EXPANSIONS.get(title.lower().strip(), title)
+def expand_skill_title(title: str, alt_label: str = None) -> str:
+    """Expand abbreviated/acronym skill titles for better search results.
+
+    Strategy:
+    1. Check SKILL_EXPANSIONS dict for known acronyms/terms
+    2. Strip parenthetical qualifiers e.g. 'Prolog (computer programming)' -> 'Prolog programming'
+    3. Use alt_label if it's meaningfully different and more descriptive
+    """
+    title_lower = title.lower().strip()
+
+    # 1. Direct expansion lookup
+    if title_lower in SKILL_EXPANSIONS:
+        return SKILL_EXPANSIONS[title_lower]
+
+    # 2. Strip parentheticals and merge useful words back in
+    #    e.g. "Prolog (computer programming)" -> "Prolog computer programming"
+    paren_match = re.match(r'^(.+?)\s*\((.+?)\)\s*$', title)
+    if paren_match:
+        base = paren_match.group(1).strip()
+        qualifier = paren_match.group(2).strip()
+        # Also check expansion for the base part
+        if base.lower() in SKILL_EXPANSIONS:
+            return SKILL_EXPANSIONS[base.lower()]
+        return f"{base} {qualifier}"
+
+    # 3. If alt_label is meaningfully different, combine with title for richer search
+    if alt_label:
+        alt_clean = alt_label.strip()
+        # Only use alt_label if it's significantly different from title
+        if alt_clean.lower() != title_lower and alt_clean.lower() not in title_lower:
+            # Extract unique words from alt_label not in the title
+            title_words = set(title_lower.split())
+            alt_words = [w for w in alt_clean.lower().split() if w not in title_words and len(w) > 2]
+            if alt_words:
+                return f"{title} {' '.join(alt_words)}"
+
+    return title
 
 
 def is_short_skill(title: str) -> bool:
@@ -435,13 +485,19 @@ def build_search_query(skill: Dict, variant: str = "default", use_occupation: bo
 
     Args:
         skill: Skill dict with 'title', 'description', and optionally 'occupation_title'
-        variant: Query variant - 'default', 'practical', or 'handbook'
+        variant: Query variant - 'default', 'practical', 'handbook', or 'broader'
         use_occupation: Whether to include occupation in query (False for fallback)
     """
-    title = expand_skill_title(skill["title"])
+    title = expand_skill_title(skill["title"], alt_label=skill.get("alt_label"))
     occupation = skill.get("occupation_title", "") if use_occupation else ""
 
-    if variant == "practical":
+    if variant == "broader":
+        # Use broader skill category to widen the search
+        broader = skill.get("broader_skill_title", "")
+        if broader:
+            return f"{title} {broader} textbook"
+        return f"{title} textbook introduction"
+    elif variant == "practical":
         if occupation:
             return f"{title} {occupation} practical guide professional"
         return f"{title} practical guide professional"
@@ -501,30 +557,71 @@ def description_quality_check(book: Dict) -> bool:
     return True
 
 
-def fetch_skills(limit: int = 50, featured_only: bool = False) -> List[Dict]:
-    sql = """
-        SELECT s.uri,
-        s.skill_code,
-        s.preferred_title AS skill_title,
-        s.description,
-        s.books_last_fetched_at,
-        os.occupation_uri,
-        o.preferred_title AS occupation_title
-        FROM skills s
+def fetch_skills(limit: int = 50, featured_only: bool = False, fill_gaps_only: bool = False) -> List[Dict]:
+    if fill_gaps_only:
+        # Gap-filling query: find skills with zero books
+        sql = """
+            SELECT s.uri,
+            s.skill_code,
+            s.preferred_title AS skill_title,
+            s.description,
+            s.books_last_fetched_at,
+            os.occupation_uri,
+            o.preferred_title AS occupation_title,
+            bs.preferred_title AS broader_skill_title,
+            s.alt_label
+            FROM skills s
+            LEFT JOIN occupation_skills os
+            ON s.uri = os.skill_uri
+            LEFT JOIN occupations o
+            ON os.occupation_uri = o.uri
+            LEFT JOIN skill_book_matches sbm
+            ON sbm.skill_uri = s.uri
+            AND sbm.occupation_uri = os.occupation_uri
+            LEFT JOIN skills bs
+            ON s.broader_skill_uri = bs.uri
+            WHERE s.skill_type ILIKE 'knowledge'
+            AND s.description is not NULL
+            AND o.uri is not NULL
+            AND s.is_leaf = TRUE
+            AND sbm.skill_uri IS NULL
+            {featured_filter}
+            GROUP BY s.uri, s.skill_code, s.preferred_title, s.description,
+                     s.books_last_fetched_at, os.occupation_uri, o.preferred_title,
+                     bs.preferred_title, s.alt_label
+            ORDER BY skill_code
+            LIMIT %s;
+        """.format(featured_filter="AND o.is_featured = TRUE" if featured_only else "")
+    else:
+        # Standard query: all skills
+        sql = """
+            SELECT s.uri,
+            s.skill_code,
+            s.preferred_title AS skill_title,
+            s.description,
+            s.books_last_fetched_at,
+            os.occupation_uri,
+            o.preferred_title AS occupation_title,
+            bs.preferred_title AS broader_skill_title,
+            s.alt_label
+            FROM skills s
 
-        LEFT JOIN occupation_skills os
-        ON s.uri = os.skill_uri
+            LEFT JOIN occupation_skills os
+            ON s.uri = os.skill_uri
 
-        LEFT JOIN occupations o
-        ON os.occupation_uri = o.uri
-        WHERE s.skill_type ILIKE 'knowledge'
-        AND s.description is not NULL
-        AND o.uri is not NULL
-        AND s.is_leaf = TRUE
-        {featured_filter}
-        ORDER BY skill_code
-        LIMIT %s;
-    """.format(featured_filter="AND o.is_featured = TRUE" if featured_only else "")
+            LEFT JOIN occupations o
+            ON os.occupation_uri = o.uri
+
+            LEFT JOIN skills bs
+            ON s.broader_skill_uri = bs.uri
+            WHERE s.skill_type ILIKE 'knowledge'
+            AND s.description is not NULL
+            AND o.uri is not NULL
+            AND s.is_leaf = TRUE
+            {featured_filter}
+            ORDER BY skill_code
+            LIMIT %s;
+        """.format(featured_filter="AND o.is_featured = TRUE" if featured_only else "")
 
     conn = get_db_connection()
     with conn.cursor() as cur:
@@ -542,7 +639,9 @@ def fetch_skills(limit: int = 50, featured_only: bool = False) -> List[Dict]:
         skill_description = r[3]
         occupation_uri = r[5]
         occupation_title = r[6]
-        
+        broader_skill_title = r[7]
+        alt_label = r[8]
+
         # Apply content filter
         if is_occupation_excluded(occupation_uri or "", occupation_title or ""):
             excluded_count += 1
@@ -550,7 +649,7 @@ def fetch_skills(limit: int = 50, featured_only: bool = False) -> List[Dict]:
         if is_skill_excluded(skill_uri, skill_title, skill_description):
             excluded_count += 1
             continue
-        
+
         skills.append({
             "uri": skill_uri,
             "occupation_uri": occupation_uri,
@@ -559,6 +658,8 @@ def fetch_skills(limit: int = 50, featured_only: bool = False) -> List[Dict]:
             "title": skill_title,
             "description": skill_description,
             "books_last_fetched_at": r[4],
+            "broader_skill_title": broader_skill_title,
+            "alt_label": alt_label,
         })
     
     if excluded_count > 0:
@@ -736,6 +837,62 @@ def _collect_isbns(books: List[Dict]) -> set:
     return isbns
 
 
+def _normalize_title(title: str) -> str:
+    """Normalize book title for deduplication.
+
+    Removes edition info (e.g., '2nd Edition', 'E-Book', '2020 Edition'), common suffixes,
+    and normalizes whitespace to find duplicate books published in different formats/years.
+    """
+    if not title:
+        return ""
+
+    # Convert to lowercase and strip whitespace
+    normalized = title.lower().strip()
+
+    # Remove edition markers (e.g., "2nd Edition", "E-Book", "2020 Edition", "International Edition")
+    edition_patterns = [
+        r',?\s*(1st|2nd|3rd|4th|5th|[0-9]+(st|nd|rd|th))\s+edition\b',
+        r',?\s*e[- ]book\b',
+        r',?\s*paperback\b',
+        r',?\s*hardcover\b',
+        r',?\s*international edition\b',
+        r',?\s*revised edition\b',
+        r',?\s*\(.*edition.*\)',
+        r',?\s*\d{4}\s+edition\b',  # Year-based editions (e.g., "2020 Edition")
+        r',?\s*:\s*\d{4}\s+edition\b',  # Colon + year (e.g., ": 2020 Edition")
+        r'\s*\(\s*e[- ]book\s*\)',
+        r'\s*\(\s*\)',  # Empty parentheses
+    ]
+
+    for pattern in edition_patterns:
+        normalized = re.sub(pattern, '', normalized, flags=re.IGNORECASE)
+
+    # Remove common suffixes/punctuation
+    normalized = re.sub(r'[:\-–—,;]+\s*$', '', normalized)
+
+    # Normalize whitespace
+    normalized = ' '.join(normalized.split())
+
+    return normalized
+
+
+def _deduplicate_by_title(books: List[Dict]) -> List[Dict]:
+    """Remove duplicate books with same normalized title.
+
+    Keeps the first occurrence (highest ranked) and removes subsequent editions/reprints.
+    """
+    seen_titles = set()
+    deduped = []
+
+    for book in books:
+        normalized = _normalize_title(book.get("title", ""))
+        if normalized and normalized not in seen_titles:
+            seen_titles.add(normalized)
+            deduped.append(book)
+
+    return deduped
+
+
 def _is_isbn_duplicate(book: Dict, exclude_isbns: set) -> bool:
     """Check if a book's ISBNs overlap with the exclude set."""
     book_isbns = {book.get("isbn_10"), book.get("isbn_13")} - {None}
@@ -769,11 +926,12 @@ def _process_source(
     require_description: bool,
     rerank_fn,
     exclude_isbns: set = None,
+    fallback_min_year: int = None,
 ) -> tuple:
     """Process a single book source for a skill.
 
     Runs the full pipeline: multi-query fetch → dedup → hard filters →
-    fallback → semantic rerank → rank → return top 5.
+    occupation fallback → year fallback → semantic rerank → rank → return top 5.
 
     Args:
         client: Book API client (GoogleBooksClient or OpenLibraryClient)
@@ -783,6 +941,7 @@ def _process_source(
         require_description: Whether to enforce description quality check
         rerank_fn: Semantic reranking function
         exclude_isbns: ISBNs to exclude (cross-source dedup)
+        fallback_min_year: Optional older year threshold for year-based fallback
 
     Returns:
         tuple: (top_books list, used_fallback bool, filtered_count int)
@@ -849,12 +1008,115 @@ def _process_source(
 
         print(f"  {source_name}: {len(filtered_books)} books after fallback")
 
+    # Step 4b: Year-based fallback (if STILL too few results)
+    used_year_fallback = False
+    if (len(filtered_books) < MIN_BOOKS_THRESHOLD and
+        fallback_min_year is not None and
+        fallback_min_year < min_year):
+
+        print(f"  [FALLBACK-YEAR] Only {len(filtered_books)} books, trying older years (>= {fallback_min_year})...")
+        used_year_fallback = True
+
+        # Re-filter original fetched books with older year threshold
+        try:
+            older_books = filter_books(
+                all_books,
+                min_year=fallback_min_year,
+                require_description=require_description,
+                target_occupation=skill.get("occupation_title"),
+                skill_title=skill.get("title"),
+            )
+        except Exception as e:
+            print(f"  [ERROR] year fallback filtering failed: {e}")
+            older_books = []
+
+        # Merge with existing (dedup by ISBN)
+        existing_isbns = _collect_isbns(filtered_books)
+        for book in older_books:
+            if not _is_isbn_duplicate(book, existing_isbns):
+                filtered_books.append(book)
+                existing_isbns.update(_collect_isbns([book]))
+
+        print(f"  {source_name}: {len(filtered_books)} books after year fallback")
+
+    # Step 4c: Broader skill fallback (if STILL too few results)
+    used_broader_fallback = False
+    if len(filtered_books) < MIN_BOOKS_THRESHOLD and skill.get("broader_skill_title"):
+        broader_title = skill["broader_skill_title"]
+        print(f"  [FALLBACK-BROADER] Only {len(filtered_books)} books, trying broader skill: '{broader_title}'...")
+        used_broader_fallback = True
+
+        broader_books = []
+        seen = set()
+        for variant in ["broader"]:
+            query = build_search_query(skill, variant=variant, use_occupation=False)
+            print(f"  Query (broader): {query[:60]}...")
+            try:
+                books, _ = client.search(query, book_limit // 3)
+            except Exception as e:
+                print(f"  [ERROR] {source_name} (broader) failed: {e}")
+                continue
+            for book in books:
+                isbn = book.get("isbn_13") or book.get("isbn_10")
+                if isbn and isbn not in seen:
+                    seen.add(isbn)
+                    broader_books.append(book)
+
+        # Cross-source dedup
+        if exclude_isbns:
+            broader_books = [b for b in broader_books if not _is_isbn_duplicate(b, exclude_isbns)]
+
+        try:
+            broader_filtered = filter_books(
+                broader_books,
+                min_year=min_year,
+                require_description=require_description,
+                target_occupation=skill.get("occupation_title"),
+                skill_title=None,  # Don't require skill mention — broader search
+            )
+        except Exception as e:
+            print(f"  [ERROR] broader fallback filtering failed: {e}")
+            broader_filtered = []
+
+        existing_isbns = _collect_isbns(filtered_books)
+        for book in broader_filtered:
+            if not _is_isbn_duplicate(book, existing_isbns):
+                filtered_books.append(book)
+                existing_isbns.update(_collect_isbns([book]))
+
+        print(f"  {source_name}: {len(filtered_books)} books after broader fallback")
+
+        # Final year fallback within broader: go back to 2015 if still too few
+        if len(filtered_books) < MIN_BOOKS_THRESHOLD:
+            print(f"  [FALLBACK-BROADER-YEAR] Only {len(filtered_books)} books, trying broader with >= 2015...")
+            try:
+                broader_older = filter_books(
+                    broader_books,
+                    min_year=2012,
+                    require_description=require_description,
+                    target_occupation=skill.get("occupation_title"),
+                    skill_title=None,
+                )
+            except Exception as e:
+                print(f"  [ERROR] broader year fallback filtering failed: {e}")
+                broader_older = []
+
+            existing_isbns = _collect_isbns(filtered_books)
+            for book in broader_older:
+                if not _is_isbn_duplicate(book, existing_isbns):
+                    filtered_books.append(book)
+                    existing_isbns.update(_collect_isbns([book]))
+
+            print(f"  {source_name}: {len(filtered_books)} books after broader year fallback (>= 2012)")
+
     # Step 5: Semantic reranking
     reranked = rerank_fn(skill, filtered_books, top_n=10)
 
     for b, score in reranked:
         print(f"    {b.get('title', '')[:40]}: {score:.2f}")
 
+    # Use lower threshold if ANY fallback was used
+    used_fallback = used_fallback or used_year_fallback or used_broader_fallback
     relevance_threshold = MIN_RELEVANCE_SCORE_FALLBACK if used_fallback else MIN_RELEVANCE_SCORE
     reranked = [(b, score) for b, score in reranked if score >= relevance_threshold]
 
@@ -864,7 +1126,13 @@ def _process_source(
     # Step 6: Rank
     semantically_filtered = [b for b, score in reranked]
     ranked_books = rank_books(list(enumerate(semantically_filtered)), source=source_name)
-    top_books = ranked_books[:5]
+
+    # Step 7: Deduplicate by title (remove different editions of same book)
+    deduped_books = _deduplicate_by_title(ranked_books)
+    if len(deduped_books) < len(ranked_books):
+        print(f"  [DEDUP-TITLE] Removed {len(ranked_books) - len(deduped_books)} duplicate editions")
+
+    top_books = deduped_books[:5]
 
     print(f"  Returning top {len(top_books)} books")
 
@@ -894,11 +1162,11 @@ def _persist_books(conn, skill: Dict, top_books: List[Dict]):
     return conn
 
 
-def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=False, max_age_days=1, featured_only=False, dry_run=False):
+def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year=None, force_refresh=False, max_age_days=1, featured_only=False, fill_gaps_only=False, dry_run=False):
     google_client = GoogleBooksClient()
     open_library_client = OpenLibraryClient()
 
-    skills = fetch_skills(limit=skill_limit, featured_only=featured_only)
+    skills = fetch_skills(limit=skill_limit, featured_only=featured_only, fill_gaps_only=fill_gaps_only)
     results = []
     conn = get_db_connection()
 
@@ -942,6 +1210,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                 min_year=min_year,
                 require_description=True,
                 rerank_fn=rerank_fn,
+                fallback_min_year=fallback_min_year,
             )
 
             if not dry_run:
@@ -1036,6 +1305,104 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, force_refresh=Fal
                         existing_isbns.update(_collect_isbns([book]))
 
                 print(f"  open_library: {len(ol_filtered)} books after fallback")
+
+            # Year-based fallback for Open Library (if STILL too few)
+            if (len(ol_filtered) < MIN_BOOKS_THRESHOLD and
+                fallback_min_year is not None and
+                fallback_min_year < min_year):
+
+                print(f"  [FALLBACK-YEAR] Only {len(ol_filtered)} books, trying older years (>= {fallback_min_year})...")
+
+                try:
+                    older_books = filter_books(
+                        ol_all_books,
+                        min_year=fallback_min_year,
+                        require_description=False,
+                        target_occupation=skill.get("occupation_title"),
+                        skill_title=skill.get("title"),
+                    )
+                except Exception as e:
+                    print(f"  [ERROR] year fallback filtering failed: {e}")
+                    older_books = []
+
+                # Dedup against Google's top books
+                older_books = [b for b in older_books if not _is_isbn_duplicate(b, google_top_isbns)]
+
+                # Merge
+                existing_isbns = _collect_isbns(ol_filtered)
+                for book in older_books:
+                    if not _is_isbn_duplicate(book, existing_isbns):
+                        ol_filtered.append(book)
+                        existing_isbns.update(_collect_isbns([book]))
+
+                print(f"  open_library: {len(ol_filtered)} books after year fallback")
+                used_fallback = True  # Mark that fallback was used for relevance threshold
+
+            # Broader skill fallback for Open Library (if STILL too few)
+            if len(ol_filtered) < MIN_BOOKS_THRESHOLD and skill.get("broader_skill_title"):
+                broader_title = skill["broader_skill_title"]
+                print(f"  [FALLBACK-BROADER] Only {len(ol_filtered)} books, trying broader skill: '{broader_title}'...")
+                used_fallback = True
+
+                broader_books = []
+                seen_broader = set()
+                query = build_search_query(skill, variant="broader", use_occupation=False)
+                print(f"  Query (broader): {query[:60]}...")
+                try:
+                    books, _ = open_library_client.search(query, book_limit // 3)
+                    for book in books:
+                        isbn = book.get("isbn_13") or book.get("isbn_10")
+                        if isbn and isbn not in seen_broader:
+                            seen_broader.add(isbn)
+                            broader_books.append(book)
+                except Exception as e:
+                    print(f"  [ERROR] open_library (broader) failed: {e}")
+
+                # Dedup against Google's top books
+                broader_books = [b for b in broader_books if not _is_isbn_duplicate(b, google_top_isbns)]
+
+                try:
+                    broader_filtered = filter_books(
+                        broader_books,
+                        min_year=min_year,
+                        require_description=False,
+                        target_occupation=skill.get("occupation_title"),
+                        skill_title=None,  # Don't require skill mention — broader search
+                    )
+                except Exception as e:
+                    print(f"  [ERROR] broader fallback filtering failed: {e}")
+                    broader_filtered = []
+
+                existing_isbns = _collect_isbns(ol_filtered)
+                for book in broader_filtered:
+                    if not _is_isbn_duplicate(book, existing_isbns):
+                        ol_filtered.append(book)
+                        existing_isbns.update(_collect_isbns([book]))
+
+                print(f"  open_library: {len(ol_filtered)} books after broader fallback")
+
+                # Final year fallback within broader: go back to 2015 if still too few
+                if len(ol_filtered) < MIN_BOOKS_THRESHOLD:
+                    print(f"  [FALLBACK-BROADER-YEAR] Only {len(ol_filtered)} books, trying broader with >= 2012...")
+                    try:
+                        broader_older = filter_books(
+                            broader_books,
+                            min_year=2012,
+                            require_description=False,
+                            target_occupation=skill.get("occupation_title"),
+                            skill_title=None,
+                        )
+                    except Exception as e:
+                        print(f"  [ERROR] broader year fallback filtering failed: {e}")
+                        broader_older = []
+
+                    existing_isbns = _collect_isbns(ol_filtered)
+                    for book in broader_older:
+                        if not _is_isbn_duplicate(book, existing_isbns):
+                            ol_filtered.append(book)
+                            existing_isbns.update(_collect_isbns([book]))
+
+                    print(f"  open_library: {len(ol_filtered)} books after broader year fallback (>= 2012)")
 
             # Enrichment waterfall — fetch missing fields from Google Books
             if ol_filtered:
@@ -1139,14 +1506,31 @@ if __name__ == "__main__":
     parser.add_argument(
         "--min-year",
         type=int,
-        default=2020,
-        help="Minimum publication year (default: 2020)",
+        default=None,
+        help="Minimum publication year (default: current_year - 6)",
+    )
+    parser.add_argument(
+        "--primary-years-lookback",
+        type=int,
+        default=6,
+        help="Years to look back for primary search (default: 6)",
+    )
+    parser.add_argument(
+        "--fallback-years-lookback",
+        type=int,
+        default=8,
+        help="Years to look back for year-based fallback (default: 8)",
     )
     parser.add_argument(
         "--freshness_days",
         type=int,
         default=1,
         help="Skip skills fetched within this many days (default: 1)",
+    )
+    parser.add_argument(
+        "--fill-gaps-only",
+        action="store_true",
+        help="Only search skills with zero books (gap-filling mode)",
     )
     parser.add_argument(
         "--featured-only",
@@ -1167,6 +1551,19 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # Calculate dynamic min_year if not explicitly provided
+    if args.min_year is None:
+        args.min_year = datetime.utcnow().year - args.primary_years_lookback
+        print(f"Using dynamic min_year: {args.min_year} (current_year - {args.primary_years_lookback})")
+
+    # Calculate fallback year threshold
+    args.fallback_min_year = datetime.utcnow().year - args.fallback_years_lookback
+
+    # Gap-filling mode uses even older threshold
+    if args.fill_gaps_only:
+        args.min_year = datetime.utcnow().year - 10
+        print(f"Gap-filling mode: using min_year={args.min_year} (current_year - 10)")
+
     # Set the semantic model before running search
     set_semantic_model(args.semantic_model)
     print(f"Using semantic model: {args.semantic_model}")
@@ -1175,8 +1572,10 @@ if __name__ == "__main__":
         skill_limit=args.skill_limit,
         book_limit=args.book_limit,
         min_year=args.min_year,
+        fallback_min_year=args.fallback_min_year,
         force_refresh=args.force_refresh,
-        max_age_days=args.max_age_days,
+        max_age_days=args.freshness_days,
         featured_only=args.featured_only,
+        fill_gaps_only=args.fill_gaps_only,
         dry_run=args.dry_run,
     )
