@@ -157,15 +157,41 @@ def upsert_book(conn, book):
             return cur.fetchone()[0]
 
 
-def link_book_to_skill(conn, skill_uri: str, occupation_uri: str, book_id: int, rank: int):
-    sql = """
-    INSERT INTO skill_book_matches (skill_uri, occupation_uri, book_id, rank, matched_at)
-    VALUES (%s, %s, %s, %s, NOW())
-    ON CONFLICT (skill_uri, occupation_uri, book_id)
-    DO UPDATE SET
-        rank = EXCLUDED.rank,
-        matched_at = NOW();
+def link_book_to_skill(conn, skill_uri: str, occupation_uri: str, book_id: int, rank: int, fallback_tier: int = 0):
     """
+    Link a book to a skill-occupation pair.
 
+    Args:
+        fallback_tier: Search strategy used (0=primary, 1=occupation, 2=year, 3=broader, 4=broader+year)
+    """
+    # Check if fallback_tier column exists
     with conn.cursor() as cur:
-        cur.execute(sql, (skill_uri, occupation_uri, book_id, rank))
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'skill_book_matches' AND column_name = 'fallback_tier'
+        """)
+        has_fallback_tier = cur.fetchone() is not None
+
+    if has_fallback_tier:
+        sql = """
+        INSERT INTO skill_book_matches (skill_uri, occupation_uri, book_id, rank, fallback_tier, matched_at)
+        VALUES (%s, %s, %s, %s, %s, NOW())
+        ON CONFLICT (skill_uri, occupation_uri, book_id)
+        DO UPDATE SET
+            rank = EXCLUDED.rank,
+            fallback_tier = EXCLUDED.fallback_tier,
+            matched_at = NOW();
+        """
+        with conn.cursor() as cur:
+            cur.execute(sql, (skill_uri, occupation_uri, book_id, rank, fallback_tier))
+    else:
+        sql = """
+        INSERT INTO skill_book_matches (skill_uri, occupation_uri, book_id, rank, matched_at)
+        VALUES (%s, %s, %s, %s, NOW())
+        ON CONFLICT (skill_uri, occupation_uri, book_id)
+        DO UPDATE SET
+            rank = EXCLUDED.rank,
+            matched_at = NOW();
+        """
+        with conn.cursor() as cur:
+            cur.execute(sql, (skill_uri, occupation_uri, book_id, rank))
