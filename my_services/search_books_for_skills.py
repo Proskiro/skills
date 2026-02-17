@@ -9,22 +9,32 @@ Pipeline:
       hard filters (no description required) → description enrichment waterfall
       (Google Books ISBN lookup → OL Works API → synthetic) → semantic rerank → top 5
 3. Filter books through quality gates:
-   - Publication year >= min_year (default 2020)
+   - Publication year >= min_year (default: current_year - 6)
    - Must have ISBN (for Amazon linking)
    - Must have title, authors, and description (Google) or title/authors (Open Library pre-enrichment)
    - English language only
    - Exclude fiction based on subject indicators
    - Spam title detection (filters SEO-stuffed titles with unrelated topics)
    - Semantic similarity check (skill description vs book title+description)
-4. Rank filtered books using book_ranking.py scoring
-5. Persist top 5 books per source to DB with skill linkage
+4. Fallback strategies (cascading, if < 3 books found):
+   a. Occupation fallback: Remove occupation from query (generic search)
+   b. Year fallback: Expand to older books (current_year - 8)
+   c. Broader skill fallback: Search parent skill category
+   d. Broader + year fallback: Parent skill with books >= 2012
+   (Each fallback uses lower relevance threshold: 0.16 vs 0.3)
+5. Rank filtered books using book_ranking.py scoring
+6. Persist top 5 books per source to DB with skill linkage
 
 CLI Arguments:
-    --force-refresh     Ignore recently fetched check, re-fetch all sources
-    --skill-limit N     Max skills to process (default 1000)
-    --book-limit N      Max books per source (default 40)
-    --min-year N        Min publication year (default 2020)
-    --semantic-model    'cohere' (rerank, default) or 'cohere_embed' (embed, legacy)
+    --force-refresh              Ignore recently fetched check, re-fetch all sources
+    --skill-limit N              Max skills to process (default 3000)
+    --book-limit N               Max books per source (default 120)
+    --primary-years-lookback N   Years back for primary search (default 6)
+    --fallback-years-lookback N  Years back for year fallback (default 8)
+    --freshness_days N           Skip skills fetched within N days (default 1)
+    --fill-gaps-only             Only search skills with zero books
+    --featured-only              Only search skills for featured occupations
+    --semantic-model             'cohere' (rerank, default) or 'cohere_embed' (embed, legacy)
 """
 
 import argparse
@@ -927,7 +937,7 @@ def _process_source(
     rerank_fn,
     exclude_isbns: set = None,
     fallback_min_year: int = None,
-) -> tuple:
+) -> tuple[List[Dict], int, int]:
     """Process a single book source for a skill.
 
     Runs the full pipeline: multi-query fetch → dedup → hard filters →
@@ -944,9 +954,11 @@ def _process_source(
         fallback_min_year: Optional older year threshold for year-based fallback
 
     Returns:
-        tuple: (top_books list, used_fallback bool, filtered_count int)
+        tuple: (top_books list, fallback_tier int, filtered_count int)
+              fallback_tier: 0=primary, 1=occupation, 2=year, 3=broader, 4=broader+year
     """
     source_name = client.SOURCE_NAME
+    fallback_tier = 0  # 0 = primary search (no fallback)
 
     # Step 1: Fetch with multi-query strategy
     all_books = _fetch_multi_query(client, skill, source_name, book_limit, use_occupation=True)
@@ -980,6 +992,7 @@ def _process_source(
     if len(filtered_books) < MIN_BOOKS_THRESHOLD and skill.get("occupation_title"):
         print(f"  [FALLBACK] Only {len(filtered_books)} books, trying generic search...")
         used_fallback = True
+        fallback_tier = 1  # Occupation fallback
 
         fallback_books = _fetch_multi_query(client, skill, source_name, book_limit, use_occupation=False)
 
@@ -1016,6 +1029,7 @@ def _process_source(
 
         print(f"  [FALLBACK-YEAR] Only {len(filtered_books)} books, trying older years (>= {fallback_min_year})...")
         used_year_fallback = True
+        fallback_tier = max(fallback_tier, 2)  # Year fallback (or keep higher tier)
 
         # Re-filter original fetched books with older year threshold
         try:
@@ -1045,6 +1059,7 @@ def _process_source(
         broader_title = skill["broader_skill_title"]
         print(f"  [FALLBACK-BROADER] Only {len(filtered_books)} books, trying broader skill: '{broader_title}'...")
         used_broader_fallback = True
+        fallback_tier = max(fallback_tier, 3)  # Broader skill fallback
 
         broader_books = []
         seen = set()
@@ -1086,9 +1101,10 @@ def _process_source(
 
         print(f"  {source_name}: {len(filtered_books)} books after broader fallback")
 
-        # Final year fallback within broader: go back to 2015 if still too few
+        # Final year fallback within broader: go back to 2012 if still too few
         if len(filtered_books) < MIN_BOOKS_THRESHOLD:
-            print(f"  [FALLBACK-BROADER-YEAR] Only {len(filtered_books)} books, trying broader with >= 2015...")
+            print(f"  [FALLBACK-BROADER-YEAR] Only {len(filtered_books)} books, trying broader with >= 2012...")
+            fallback_tier = 4  # Broader + year fallback
             try:
                 broader_older = filter_books(
                     broader_books,
@@ -1134,7 +1150,7 @@ def _process_source(
 
     top_books = deduped_books[:5]
 
-    print(f"  Returning top {len(top_books)} books")
+    print(f"  Returning top {len(top_books)} books (fallback_tier={fallback_tier})")
 
     if not top_books:
         print("    (no books passed filters)")
@@ -1142,11 +1158,15 @@ def _process_source(
         for b in top_books:
             print(f"    - {b.get('title', '')} | {b.get('published_year', '')}")
 
-    return top_books, used_fallback, len(filtered_books)
+    return top_books, fallback_tier, len(filtered_books)
 
 
-def _persist_books(conn, skill: Dict, top_books: List[Dict]):
-    """Persist top books to DB and link to skill."""
+def _persist_books(conn, skill: Dict, top_books: List[Dict], fallback_tier: int = 0):
+    """Persist top books to DB and link to skill.
+
+    Args:
+        fallback_tier: Search strategy tier (0=primary, 1=occupation, 2=year, 3=broader, 4=broader+year)
+    """
     conn = ensure_connection(conn)
 
     for rank, book in enumerate(top_books, start=1):
@@ -1157,6 +1177,7 @@ def _persist_books(conn, skill: Dict, top_books: List[Dict]):
             occupation_uri=skill["occupation_uri"],
             book_id=book_id,
             rank=rank,
+            fallback_tier=fallback_tier,
         )
 
     return conn
@@ -1203,7 +1224,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
             )
         else:
             print("  --- Google Books ---")
-            google_top, _, google_filtered_count = _process_source(
+            google_top, google_fallback_tier, google_filtered_count = _process_source(
                 client=google_client,
                 skill=skill,
                 book_limit=book_limit,
@@ -1214,7 +1235,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
             )
 
             if not dry_run:
-                conn = _persist_books(conn, skill, google_top)
+                conn = _persist_books(conn, skill, google_top, fallback_tier=google_fallback_tier)
 
                 # Update book count for popularity signal
                 if google_filtered_count > 0:
@@ -1246,6 +1267,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
             print(f"  Skipping open_library (recently fetched)")
         else:
             print("  --- Open Library ---")
+            ol_fallback_tier = 0  # Track fallback tier for Open Library
 
             # Fetch + dedup + hard filters (no description required yet)
             ol_all_books = _fetch_multi_query(
@@ -1280,6 +1302,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
             if len(ol_filtered) < MIN_BOOKS_THRESHOLD and skill.get("occupation_title"):
                 print(f"  [FALLBACK] Only {len(ol_filtered)} books, trying generic search...")
                 used_fallback = True
+                ol_fallback_tier = 1  # Occupation fallback
 
                 fallback_books = _fetch_multi_query(
                     open_library_client, skill, "open_library", book_limit, use_occupation=False
@@ -1312,6 +1335,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
                 fallback_min_year < min_year):
 
                 print(f"  [FALLBACK-YEAR] Only {len(ol_filtered)} books, trying older years (>= {fallback_min_year})...")
+                ol_fallback_tier = max(ol_fallback_tier, 2)  # Year fallback
 
                 try:
                     older_books = filter_books(
@@ -1343,6 +1367,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
                 broader_title = skill["broader_skill_title"]
                 print(f"  [FALLBACK-BROADER] Only {len(ol_filtered)} books, trying broader skill: '{broader_title}'...")
                 used_fallback = True
+                ol_fallback_tier = max(ol_fallback_tier, 3)  # Broader skill fallback
 
                 broader_books = []
                 seen_broader = set()
@@ -1381,9 +1406,10 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
 
                 print(f"  open_library: {len(ol_filtered)} books after broader fallback")
 
-                # Final year fallback within broader: go back to 2015 if still too few
+                # Final year fallback within broader: go back to 2012 if still too few
                 if len(ol_filtered) < MIN_BOOKS_THRESHOLD:
                     print(f"  [FALLBACK-BROADER-YEAR] Only {len(ol_filtered)} books, trying broader with >= 2012...")
+                    ol_fallback_tier = 4  # Broader + year fallback
                     try:
                         broader_older = filter_books(
                             broader_books,
@@ -1458,7 +1484,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
             ranked_books = rank_books(list(enumerate(semantically_filtered)), source="open_library")
             ol_top = ranked_books[:5]
 
-            print(f"  Returning top {len(ol_top)} books")
+            print(f"  Returning top {len(ol_top)} books (fallback_tier={ol_fallback_tier})")
 
             if not ol_top:
                 print("    (no books passed filters)")
@@ -1467,7 +1493,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
                     print(f"    - {b.get('title', '')} | {b.get('published_year', '')}")
 
             if not dry_run:
-                conn = _persist_books(conn, skill, ol_top)
+                conn = _persist_books(conn, skill, ol_top, fallback_tier=ol_fallback_tier)
                 conn.commit()
 
             results.append({
