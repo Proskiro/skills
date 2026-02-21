@@ -211,8 +211,10 @@ def ensure_connection(conn):
 
 def update_google_books_total(conn, skill_uri: str, total: int):
     """Update the google_books_total column for a skill (popularity signal).
-    
-    Now uses actual filtered book count instead of unreliable API totalItems.
+
+    Stores the combined pre-filter book count from Google Books + Open Library:
+    unique books fetched across all query variants, deduped by ISBN, before
+    any hard filters. This is a reliable popularity signal for star ratings.
     """
     sql = """
         UPDATE skills 
@@ -937,7 +939,7 @@ def _process_source(
     rerank_fn,
     exclude_isbns: set = None,
     fallback_min_year: int = None,
-) -> tuple[List[Dict], int, int]:
+) -> tuple[List[Dict], int, int, int]:
     """Process a single book source for a skill.
 
     Runs the full pipeline: multi-query fetch → dedup → hard filters →
@@ -954,8 +956,9 @@ def _process_source(
         fallback_min_year: Optional older year threshold for year-based fallback
 
     Returns:
-        tuple: (top_books list, fallback_tier int, filtered_count int)
+        tuple: (top_books list, fallback_tier int, filtered_count int, pre_filter_count int)
               fallback_tier: 0=primary, 1=occupation, 2=year, 3=broader, 4=broader+year
+              pre_filter_count: unique books fetched before any hard filters (popularity signal)
     """
     source_name = client.SOURCE_NAME
     fallback_tier = 0  # 0 = primary search (no fallback)
@@ -971,6 +974,9 @@ def _process_source(
         if deduped_count > 0:
             print(f"  [DEDUP] Removed {deduped_count} books already in Google's top results")
 
+    # Capture pre-filter count as popularity signal (unique books across all query variants)
+    pre_filter_count = len(all_books)
+
     # Step 3: Hard filters
     try:
         filtered_books = filter_books(
@@ -982,7 +988,7 @@ def _process_source(
         )
     except Exception as e:
         print(f"  [ERROR] filtering failed: {e}")
-        return [], False, 0
+        return [], False, 0, pre_filter_count
 
     print(f"  {source_name}: {len(filtered_books)} books after hard filters")
 
@@ -1158,7 +1164,7 @@ def _process_source(
         for b in top_books:
             print(f"    - {b.get('title', '')} | {b.get('published_year', '')}")
 
-    return top_books, fallback_tier, len(filtered_books)
+    return top_books, fallback_tier, len(filtered_books), pre_filter_count
 
 
 def _persist_books(conn, skill: Dict, top_books: List[Dict], fallback_tier: int = 0):
@@ -1178,6 +1184,7 @@ def _persist_books(conn, skill: Dict, top_books: List[Dict], fallback_tier: int 
             book_id=book_id,
             rank=rank,
             fallback_tier=fallback_tier,
+            score=book.get("ranking_score", 0.0),
         )
 
     return conn
@@ -1216,6 +1223,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
             conn, skill["uri"], skill["occupation_uri"], "google_books", max_age_days=max_age_days
         )
 
+        google_pre_filter_count = 0
         if google_skipped:
             print(f"  Skipping google_books (recently fetched)")
             # Still need ISBNs of Google's persisted books for cross-source dedup
@@ -1224,7 +1232,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
             )
         else:
             print("  --- Google Books ---")
-            google_top, google_fallback_tier, google_filtered_count = _process_source(
+            google_top, google_fallback_tier, google_filtered_count, google_pre_filter_count = _process_source(
                 client=google_client,
                 skill=skill,
                 book_limit=book_limit,
@@ -1236,10 +1244,6 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
 
             if not dry_run:
                 conn = _persist_books(conn, skill, google_top, fallback_tier=google_fallback_tier)
-
-                # Update book count for popularity signal
-                if google_filtered_count > 0:
-                    update_google_books_total(conn, skill["uri"], google_filtered_count)
 
                 conn.commit()
 
@@ -1259,6 +1263,7 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
         # ==============================================================
         # PHASE 2: Open Library (deduped against Google's final top 5)
         # ==============================================================
+        ol_pre_filter_count = 0
         ol_skipped = not force_refresh and has_books_from_source(
             conn, skill["uri"], skill["occupation_uri"], "open_library", max_age_days=max_age_days
         )
@@ -1273,6 +1278,9 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
             ol_all_books = _fetch_multi_query(
                 open_library_client, skill, "open_library", book_limit, use_occupation=True
             )
+
+            # Capture pre-filter count as popularity signal
+            ol_pre_filter_count = len(ol_all_books)
 
             # Cross-source dedup against Google's final top books
             before_dedup = len(ol_all_books)
@@ -1502,6 +1510,15 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
                 "source": "open_library",
                 "books": ol_top,
             })
+
+        # Update pre-filter book count as popularity signal
+        # Combined unique books from both sources before hard filters
+        if not dry_run and not (google_skipped and ol_skipped):
+            total_pre_filter = google_pre_filter_count + ol_pre_filter_count
+            if total_pre_filter > 0:
+                update_google_books_total(conn, skill["uri"], total_pre_filter)
+                conn.commit()
+                print(f"  Pre-filter book count (popularity signal): {total_pre_filter}")
 
         # Throttle between skills
         time.sleep(1.0 + random.random() * 0.5)

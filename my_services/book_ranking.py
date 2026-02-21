@@ -208,14 +208,14 @@ class BookRanker:
             books: List of (index, book) tuples
 
         Returns:
-            Sorted list of book dicts (highest score first)
+            Sorted list of book dicts (highest score first),
+            each with 'ranking_score' attached.
         """
-        ranked = sorted(
-            books,
-            key=lambda x: self.score(x[0], x[1]),
-            reverse=True,
-        )
-        return [b for _, b in ranked]
+        scored = [(idx, book, self.score(idx, book)) for idx, book in books]
+        scored.sort(key=lambda x: x[2], reverse=True)
+        for _, book, s in scored:
+            book["ranking_score"] = round(s, 2)
+        return [book for _, book, _ in scored]
 
 
 def rank_books(
