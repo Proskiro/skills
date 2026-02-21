@@ -140,10 +140,13 @@ class GoogleBooksClient:
             pdf_info = access_info.get("pdf", {})
 
             free_access = None
+            # Prefer previewLink (Google Books page) over webReaderLink (embedded reader)
+            # webReaderLink often errors with "can't open this book" for partial/sample access
+            preview_url = volume_info.get("previewLink") or access_info.get("webReaderLink")
             if access_status == "FULL_PUBLIC_DOMAIN" or viewability == "ALL_PAGES":
                 free_access = {
                     "type": "free",
-                    "read_url": access_info.get("webReaderLink"),
+                    "read_url": preview_url,
                     "epub_available": epub_info.get("isAvailable", False),
                     "epub_download": epub_info.get("downloadLink"),
                     "pdf_available": pdf_info.get("isAvailable", False),
@@ -152,7 +155,7 @@ class GoogleBooksClient:
             elif viewability == "PARTIAL" or access_status == "SAMPLE":
                 free_access = {
                     "type": "preview",
-                    "read_url": access_info.get("webReaderLink"),
+                    "read_url": preview_url,
                     "epub_available": False,
                     "pdf_available": False,
                 }
@@ -257,11 +260,13 @@ class GoogleBooksClient:
             pdf_info = access_info.get("pdf", {})
             
             # Determine free access type
+            # Prefer previewLink (Google Books page) over webReaderLink (embedded reader)
+            preview_url = volume_info.get("previewLink") or access_info.get("webReaderLink")
             free_access = None
             if access_status == "FULL_PUBLIC_DOMAIN" or viewability == "ALL_PAGES":
                 free_access = {
                     "type": "free",
-                    "read_url": access_info.get("webReaderLink"),
+                    "read_url": preview_url,
                     "epub_available": epub_info.get("isAvailable", False),
                     "epub_download": epub_info.get("downloadLink"),
                     "pdf_available": pdf_info.get("isAvailable", False),
@@ -270,7 +275,7 @@ class GoogleBooksClient:
             elif viewability == "PARTIAL" or access_status == "SAMPLE":
                 free_access = {
                     "type": "preview",
-                    "read_url": access_info.get("webReaderLink"),
+                    "read_url": preview_url,
                     "epub_available": False,
                     "pdf_available": False,
                 }
