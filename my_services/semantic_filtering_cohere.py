@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 import time
 from typing import Dict
+=======
+from typing import Dict, List, Tuple
+>>>>>>> d3fe11995b242c251742b6b87b668661767548d9
 
 import numpy as np
 
@@ -45,9 +49,9 @@ def compute_similarity(skill: Dict, book: Dict) -> float:
 
 def rerank_books_for_skill(
     skill: Dict,
-    books: list[Dict],
+    books: List[Dict],
     top_n: int = 5,
-) -> list[tuple[Dict, float]]:
+) -> List[Tuple[Dict, float]]:
     """
     Rerank books for a professional skill using Cohere's rerank API.
 
