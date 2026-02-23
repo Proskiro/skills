@@ -9,6 +9,9 @@ import os
 from functools import lru_cache
 
 import cohere
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Default model + input_type for your use case
 DEFAULT_MODEL = "embed-english-v3.0"  # later: "embed-multilingual-v3.0"

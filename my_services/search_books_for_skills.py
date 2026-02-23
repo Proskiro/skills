@@ -772,8 +772,30 @@ def has_books_from_source(
     conn, skill_uri: str, occupation_uri: str, source: str, max_age_days: int = 1
 ) -> bool:
     """
-    Check if a skill-occupation pair already has books from a specific source within the freshness window.
+    Check if a skill-occupation pair was already searched for a specific source
+    within the freshness window. Checks both actual book matches AND search
+    attempts (so 0-result searches are also considered fresh).
     """
+    # Check if there's a recent search attempt (covers 0-result cases)
+    attempt_sql = """
+        SELECT 1
+        FROM book_search_attempts
+        WHERE skill_uri = %s
+          AND occupation_uri = %s
+          AND source = %s
+          AND searched_at >= NOW() - INTERVAL '%s days'
+        LIMIT 1;
+    """
+    with conn.cursor() as cur:
+        try:
+            cur.execute(attempt_sql, (skill_uri, occupation_uri, source, max_age_days))
+            if cur.fetchone() is not None:
+                return True
+        except Exception:
+            # Table doesn't exist yet — fall through to legacy check
+            conn.rollback()
+
+    # Fallback: check actual book matches (legacy behavior)
     sql = """
         SELECT 1
         FROM skill_book_matches sbm
@@ -787,6 +809,36 @@ def has_books_from_source(
     with conn.cursor() as cur:
         cur.execute(sql, (skill_uri, occupation_uri, source, max_age_days))
         return cur.fetchone() is not None
+
+
+def _ensure_search_attempts_table(conn):
+    """Create the book_search_attempts table if it doesn't exist."""
+    sql = """
+    CREATE TABLE IF NOT EXISTS book_search_attempts (
+        skill_uri TEXT NOT NULL,
+        occupation_uri TEXT NOT NULL,
+        source TEXT NOT NULL,
+        searched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        books_found INT NOT NULL DEFAULT 0,
+        PRIMARY KEY (skill_uri, occupation_uri, source)
+    );
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql)
+    conn.commit()
+
+
+def record_search_attempt(conn, skill_uri: str, occupation_uri: str, source: str, books_found: int = 0):
+    """Record that a search was attempted for a skill-occupation-source combo."""
+    _ensure_search_attempts_table(conn)
+    sql = """
+    INSERT INTO book_search_attempts (skill_uri, occupation_uri, source, searched_at, books_found)
+    VALUES (%s, %s, %s, NOW(), %s)
+    ON CONFLICT (skill_uri, occupation_uri, source)
+    DO UPDATE SET searched_at = NOW(), books_found = EXCLUDED.books_found;
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql, (skill_uri, occupation_uri, source, books_found))
 
 
 def _get_existing_isbns_for_skill(
@@ -1206,6 +1258,8 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
         print(f"Skipping skills fetched within the last {max_age_days} day(s)")
 
     rerank_fn = get_rerank_function()
+    rerank_failures = 0
+    MAX_RERANK_FAILURES = 3
 
     for i, skill in enumerate(skills, start=1):
         print("\n" + "=" * 60)
@@ -1214,311 +1268,328 @@ def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year
         )
         print("=" * 60)
 
-        # ==============================================================
-        # PHASE 1: Google Books (runs first, always)
-        # ==============================================================
-        google_top_isbns = set()
+        try:
+            # ==============================================================
+            # PHASE 1: Google Books (runs first, always)
+            # ==============================================================
+            google_top_isbns = set()
 
-        google_skipped = not force_refresh and has_books_from_source(
-            conn, skill["uri"], skill["occupation_uri"], "google_books", max_age_days=max_age_days
-        )
-
-        google_pre_filter_count = 0
-        if google_skipped:
-            print(f"  Skipping google_books (recently fetched)")
-            # Still need ISBNs of Google's persisted books for cross-source dedup
-            google_top_isbns = _get_existing_isbns_for_skill(
-                conn, skill["uri"], skill["occupation_uri"], "google_books"
-            )
-        else:
-            print("  --- Google Books ---")
-            google_top, google_fallback_tier, google_filtered_count, google_pre_filter_count = _process_source(
-                client=google_client,
-                skill=skill,
-                book_limit=book_limit,
-                min_year=min_year,
-                require_description=True,
-                rerank_fn=rerank_fn,
-                fallback_min_year=fallback_min_year,
+            google_skipped = not force_refresh and has_books_from_source(
+                conn, skill["uri"], skill["occupation_uri"], "google_books", max_age_days=max_age_days
             )
 
-            if not dry_run:
-                conn = _persist_books(conn, skill, google_top, fallback_tier=google_fallback_tier)
-
-                conn.commit()
-
-            if google_filtered_count > 0:
-                print(f"  Books found (filtered): {google_filtered_count}")
-
-            results.append({
-                "skill_uri": skill["uri"],
-                "skill": skill["title"],
-                "source": "google_books",
-                "books": google_top,
-            })
-
-            # Collect ISBNs from Google's FINAL top books only for dedup
-            google_top_isbns = _collect_isbns(google_top)
-
-        # ==============================================================
-        # PHASE 2: Open Library (deduped against Google's final top 5)
-        # ==============================================================
-        ol_pre_filter_count = 0
-        ol_skipped = not force_refresh and has_books_from_source(
-            conn, skill["uri"], skill["occupation_uri"], "open_library", max_age_days=max_age_days
-        )
-
-        if ol_skipped:
-            print(f"  Skipping open_library (recently fetched)")
-        else:
-            print("  --- Open Library ---")
-            ol_fallback_tier = 0  # Track fallback tier for Open Library
-
-            # Fetch + dedup + hard filters (no description required yet)
-            ol_all_books = _fetch_multi_query(
-                open_library_client, skill, "open_library", book_limit, use_occupation=True
-            )
-
-            # Capture pre-filter count as popularity signal
-            ol_pre_filter_count = len(ol_all_books)
-
-            # Cross-source dedup against Google's final top books
-            before_dedup = len(ol_all_books)
-            ol_all_books = [b for b in ol_all_books if not _is_isbn_duplicate(b, google_top_isbns)]
-            deduped_count = before_dedup - len(ol_all_books)
-            if deduped_count > 0:
-                print(f"  [DEDUP] Removed {deduped_count} books already in Google's top results")
-
-            # Hard filters WITHOUT description requirement
-            try:
-                ol_filtered = filter_books(
-                    ol_all_books,
+            google_pre_filter_count = 0
+            if google_skipped:
+                print(f"  Skipping google_books (recently fetched)")
+                # Still need ISBNs of Google's persisted books for cross-source dedup
+                google_top_isbns = _get_existing_isbns_for_skill(
+                    conn, skill["uri"], skill["occupation_uri"], "google_books"
+                )
+            else:
+                print("  --- Google Books ---")
+                google_top, google_fallback_tier, google_filtered_count, google_pre_filter_count = _process_source(
+                    client=google_client,
+                    skill=skill,
+                    book_limit=book_limit,
                     min_year=min_year,
-                    require_description=False,
-                    target_occupation=skill.get("occupation_title"),
-                    skill_title=skill.get("title"),
+                    require_description=True,
+                    rerank_fn=rerank_fn,
+                    fallback_min_year=fallback_min_year,
                 )
-            except Exception as e:
-                print(f"  [ERROR] filtering failed: {e}")
-                ol_filtered = []
 
-            print(f"  open_library: {len(ol_filtered)} books after hard filters")
+                if not dry_run:
+                    conn = _persist_books(conn, skill, google_top, fallback_tier=google_fallback_tier)
+                    record_search_attempt(conn, skill["uri"], skill["occupation_uri"], "google_books", books_found=len(google_top))
+                    conn.commit()
 
-            # Fallback if too few
-            MIN_BOOKS_THRESHOLD = 3
-            used_fallback = False
-            if len(ol_filtered) < MIN_BOOKS_THRESHOLD and skill.get("occupation_title"):
-                print(f"  [FALLBACK] Only {len(ol_filtered)} books, trying generic search...")
-                used_fallback = True
-                ol_fallback_tier = 1  # Occupation fallback
+                if google_filtered_count > 0:
+                    print(f"  Books found (filtered): {google_filtered_count}")
 
-                fallback_books = _fetch_multi_query(
-                    open_library_client, skill, "open_library", book_limit, use_occupation=False
+                results.append({
+                    "skill_uri": skill["uri"],
+                    "skill": skill["title"],
+                    "source": "google_books",
+                    "books": google_top,
+                })
+
+                # Collect ISBNs from Google's FINAL top books only for dedup
+                google_top_isbns = _collect_isbns(google_top)
+
+            # ==============================================================
+            # PHASE 2: Open Library (deduped against Google's final top 5)
+            # ==============================================================
+            ol_pre_filter_count = 0
+            ol_skipped = not force_refresh and has_books_from_source(
+                conn, skill["uri"], skill["occupation_uri"], "open_library", max_age_days=max_age_days
+            )
+
+            if ol_skipped:
+                print(f"  Skipping open_library (recently fetched)")
+            else:
+                print("  --- Open Library ---")
+                ol_fallback_tier = 0  # Track fallback tier for Open Library
+
+                # Fetch + dedup + hard filters (no description required yet)
+                ol_all_books = _fetch_multi_query(
+                    open_library_client, skill, "open_library", book_limit, use_occupation=True
                 )
-                fallback_books = [b for b in fallback_books if not _is_isbn_duplicate(b, google_top_isbns)]
 
+                # Capture pre-filter count as popularity signal
+                ol_pre_filter_count = len(ol_all_books)
+
+                # Cross-source dedup against Google's final top books
+                before_dedup = len(ol_all_books)
+                ol_all_books = [b for b in ol_all_books if not _is_isbn_duplicate(b, google_top_isbns)]
+                deduped_count = before_dedup - len(ol_all_books)
+                if deduped_count > 0:
+                    print(f"  [DEDUP] Removed {deduped_count} books already in Google's top results")
+
+                # Hard filters WITHOUT description requirement
                 try:
-                    fallback_filtered = filter_books(
-                        fallback_books,
-                        min_year=min_year,
-                        require_description=False,
-                        target_occupation=skill.get("occupation_title"),
-                        skill_title=skill.get("title"),
-                    )
-                except Exception as e:
-                    print(f"  [ERROR] fallback filtering failed: {e}")
-                    fallback_filtered = []
-
-                existing_isbns = _collect_isbns(ol_filtered)
-                for book in fallback_filtered:
-                    if not _is_isbn_duplicate(book, existing_isbns):
-                        ol_filtered.append(book)
-                        existing_isbns.update(_collect_isbns([book]))
-
-                print(f"  open_library: {len(ol_filtered)} books after fallback")
-
-            # Year-based fallback for Open Library (if STILL too few)
-            if (len(ol_filtered) < MIN_BOOKS_THRESHOLD and
-                fallback_min_year is not None and
-                fallback_min_year < min_year):
-
-                print(f"  [FALLBACK-YEAR] Only {len(ol_filtered)} books, trying older years (>= {fallback_min_year})...")
-                ol_fallback_tier = max(ol_fallback_tier, 2)  # Year fallback
-
-                try:
-                    older_books = filter_books(
+                    ol_filtered = filter_books(
                         ol_all_books,
-                        min_year=fallback_min_year,
+                        min_year=min_year,
                         require_description=False,
                         target_occupation=skill.get("occupation_title"),
                         skill_title=skill.get("title"),
                     )
                 except Exception as e:
-                    print(f"  [ERROR] year fallback filtering failed: {e}")
-                    older_books = []
+                    print(f"  [ERROR] filtering failed: {e}")
+                    ol_filtered = []
 
-                # Dedup against Google's top books
-                older_books = [b for b in older_books if not _is_isbn_duplicate(b, google_top_isbns)]
+                print(f"  open_library: {len(ol_filtered)} books after hard filters")
 
-                # Merge
-                existing_isbns = _collect_isbns(ol_filtered)
-                for book in older_books:
-                    if not _is_isbn_duplicate(book, existing_isbns):
-                        ol_filtered.append(book)
-                        existing_isbns.update(_collect_isbns([book]))
+                # Fallback if too few
+                MIN_BOOKS_THRESHOLD = 3
+                used_fallback = False
+                if len(ol_filtered) < MIN_BOOKS_THRESHOLD and skill.get("occupation_title"):
+                    print(f"  [FALLBACK] Only {len(ol_filtered)} books, trying generic search...")
+                    used_fallback = True
+                    ol_fallback_tier = 1  # Occupation fallback
 
-                print(f"  open_library: {len(ol_filtered)} books after year fallback")
-                used_fallback = True  # Mark that fallback was used for relevance threshold
-
-            # Broader skill fallback for Open Library (if STILL too few)
-            if len(ol_filtered) < MIN_BOOKS_THRESHOLD and skill.get("broader_skill_title"):
-                broader_title = skill["broader_skill_title"]
-                print(f"  [FALLBACK-BROADER] Only {len(ol_filtered)} books, trying broader skill: '{broader_title}'...")
-                used_fallback = True
-                ol_fallback_tier = max(ol_fallback_tier, 3)  # Broader skill fallback
-
-                broader_books = []
-                seen_broader = set()
-                query = build_search_query(skill, variant="broader", use_occupation=False)
-                print(f"  Query (broader): {query[:60]}...")
-                try:
-                    books, _ = open_library_client.search(query, book_limit // 3)
-                    for book in books:
-                        isbn = book.get("isbn_13") or book.get("isbn_10")
-                        if isbn and isbn not in seen_broader:
-                            seen_broader.add(isbn)
-                            broader_books.append(book)
-                except Exception as e:
-                    print(f"  [ERROR] open_library (broader) failed: {e}")
-
-                # Dedup against Google's top books
-                broader_books = [b for b in broader_books if not _is_isbn_duplicate(b, google_top_isbns)]
-
-                try:
-                    broader_filtered = filter_books(
-                        broader_books,
-                        min_year=min_year,
-                        require_description=False,
-                        target_occupation=skill.get("occupation_title"),
-                        skill_title=None,  # Don't require skill mention — broader search
+                    fallback_books = _fetch_multi_query(
+                        open_library_client, skill, "open_library", book_limit, use_occupation=False
                     )
-                except Exception as e:
-                    print(f"  [ERROR] broader fallback filtering failed: {e}")
-                    broader_filtered = []
+                    fallback_books = [b for b in fallback_books if not _is_isbn_duplicate(b, google_top_isbns)]
 
-                existing_isbns = _collect_isbns(ol_filtered)
-                for book in broader_filtered:
-                    if not _is_isbn_duplicate(book, existing_isbns):
-                        ol_filtered.append(book)
-                        existing_isbns.update(_collect_isbns([book]))
-
-                print(f"  open_library: {len(ol_filtered)} books after broader fallback")
-
-                # Final year fallback within broader: go back to 2012 if still too few
-                if len(ol_filtered) < MIN_BOOKS_THRESHOLD:
-                    print(f"  [FALLBACK-BROADER-YEAR] Only {len(ol_filtered)} books, trying broader with >= 2012...")
-                    ol_fallback_tier = 4  # Broader + year fallback
                     try:
-                        broader_older = filter_books(
-                            broader_books,
-                            min_year=2012,
+                        fallback_filtered = filter_books(
+                            fallback_books,
+                            min_year=min_year,
                             require_description=False,
                             target_occupation=skill.get("occupation_title"),
-                            skill_title=None,
+                            skill_title=skill.get("title"),
                         )
                     except Exception as e:
-                        print(f"  [ERROR] broader year fallback filtering failed: {e}")
-                        broader_older = []
+                        print(f"  [ERROR] fallback filtering failed: {e}")
+                        fallback_filtered = []
 
                     existing_isbns = _collect_isbns(ol_filtered)
-                    for book in broader_older:
+                    for book in fallback_filtered:
                         if not _is_isbn_duplicate(book, existing_isbns):
                             ol_filtered.append(book)
                             existing_isbns.update(_collect_isbns([book]))
 
-                    print(f"  open_library: {len(ol_filtered)} books after broader year fallback (>= 2012)")
+                    print(f"  open_library: {len(ol_filtered)} books after fallback")
 
-            # Enrichment waterfall — fetch missing fields from Google Books
-            if ol_filtered:
-                # Layer 1: Google Books ISBN lookup (description, free access, thumbnail)
-                needs_enrichment = [
-                    b for b in ol_filtered
-                    if not b.get("description") or not b.get("free_access") or not b.get("thumbnail")
-                ]
-                if needs_enrichment:
-                    print(f"  [ENRICH] Google Books ISBN lookup for {len(needs_enrichment)} books...")
-                    for book in needs_enrichment:
-                        isbn = book.get("isbn_13") or book.get("isbn_10")
-                        if isbn:
-                            enrichment = google_client.fetch_enrichment_by_isbn(isbn)
-                            if enrichment:
-                                if not book.get("description") and enrichment.get("description"):
-                                    book["description"] = enrichment["description"]
-                                if not book.get("free_access") and enrichment.get("free_access"):
-                                    book["free_access"] = enrichment["free_access"]
-                                if not book.get("thumbnail") and enrichment.get("thumbnail"):
-                                    book["thumbnail"] = enrichment["thumbnail"]
-                                if not book.get("page_count") and enrichment.get("page_count"):
-                                    book["page_count"] = enrichment["page_count"]
-                                print(f"    [Google] Enriched: {book.get('title', '')[:50]}")
+                # Year-based fallback for Open Library (if STILL too few)
+                if (len(ol_filtered) < MIN_BOOKS_THRESHOLD and
+                    fallback_min_year is not None and
+                    fallback_min_year < min_year):
 
-                # Layer 2: Open Library Works API (free, already have work IDs)
-                missing = [b for b in ol_filtered if not b.get("description")]
-                if missing:
-                    print(f"  [ENRICH] Open Library Works API for {len(missing)} books...")
-                    open_library_client.enrich_with_descriptions(missing)
+                    print(f"  [FALLBACK-YEAR] Only {len(ol_filtered)} books, trying older years (>= {fallback_min_year})...")
+                    ol_fallback_tier = max(ol_fallback_tier, 2)  # Year fallback
 
-                # Layer 3: Synthetic description from title/subjects (fallback)
-                for book in ol_filtered:
-                    if not book.get("description"):
-                        book["description"] = build_synthetic_description(book)
+                    try:
+                        older_books = filter_books(
+                            ol_all_books,
+                            min_year=fallback_min_year,
+                            require_description=False,
+                            target_occupation=skill.get("occupation_title"),
+                            skill_title=skill.get("title"),
+                        )
+                    except Exception as e:
+                        print(f"  [ERROR] year fallback filtering failed: {e}")
+                        older_books = []
 
-                enriched_real = sum(1 for b in ol_filtered if not b["description"].startswith("A book about"))
-                print(f"  [ENRICH] {enriched_real}/{len(ol_filtered)} books got real descriptions")
+                    # Dedup against Google's top books
+                    older_books = [b for b in older_books if not _is_isbn_duplicate(b, google_top_isbns)]
 
-            # Semantic reranking (all books now have some description text)
-            reranked = rerank_fn(skill, ol_filtered, top_n=10)
+                    # Merge
+                    existing_isbns = _collect_isbns(ol_filtered)
+                    for book in older_books:
+                        if not _is_isbn_duplicate(book, existing_isbns):
+                            ol_filtered.append(book)
+                            existing_isbns.update(_collect_isbns([book]))
 
-            for b, score in reranked:
-                print(f"    {b.get('title', '')[:40]}: {score:.2f}")
+                    print(f"  open_library: {len(ol_filtered)} books after year fallback")
+                    used_fallback = True  # Mark that fallback was used for relevance threshold
 
-            relevance_threshold = MIN_RELEVANCE_SCORE_FALLBACK if used_fallback else MIN_RELEVANCE_SCORE
-            reranked = [(b, score) for b, score in reranked if score >= relevance_threshold]
+                # Broader skill fallback for Open Library (if STILL too few)
+                if len(ol_filtered) < MIN_BOOKS_THRESHOLD and skill.get("broader_skill_title"):
+                    broader_title = skill["broader_skill_title"]
+                    print(f"  [FALLBACK-BROADER] Only {len(ol_filtered)} books, trying broader skill: '{broader_title}'...")
+                    used_fallback = True
+                    ol_fallback_tier = max(ol_fallback_tier, 3)  # Broader skill fallback
 
-            if len(reranked) < len(ol_filtered):
-                print(f"  [RELEVANCE] Filtered to {len(reranked)} books (score >= {relevance_threshold})")
+                    broader_books = []
+                    seen_broader = set()
+                    query = build_search_query(skill, variant="broader", use_occupation=False)
+                    print(f"  Query (broader): {query[:60]}...")
+                    try:
+                        books, _ = open_library_client.search(query, book_limit // 3)
+                        for book in books:
+                            isbn = book.get("isbn_13") or book.get("isbn_10")
+                            if isbn and isbn not in seen_broader:
+                                seen_broader.add(isbn)
+                                broader_books.append(book)
+                    except Exception as e:
+                        print(f"  [ERROR] open_library (broader) failed: {e}")
 
-            semantically_filtered = [b for b, score in reranked]
-            ranked_books = rank_books(list(enumerate(semantically_filtered)), source="open_library")
-            ol_top = ranked_books[:5]
+                    # Dedup against Google's top books
+                    broader_books = [b for b in broader_books if not _is_isbn_duplicate(b, google_top_isbns)]
 
-            print(f"  Returning top {len(ol_top)} books (fallback_tier={ol_fallback_tier})")
+                    try:
+                        broader_filtered = filter_books(
+                            broader_books,
+                            min_year=min_year,
+                            require_description=False,
+                            target_occupation=skill.get("occupation_title"),
+                            skill_title=None,  # Don't require skill mention — broader search
+                        )
+                    except Exception as e:
+                        print(f"  [ERROR] broader fallback filtering failed: {e}")
+                        broader_filtered = []
 
-            if not ol_top:
-                print("    (no books passed filters)")
-            else:
-                for b in ol_top:
-                    print(f"    - {b.get('title', '')} | {b.get('published_year', '')}")
+                    existing_isbns = _collect_isbns(ol_filtered)
+                    for book in broader_filtered:
+                        if not _is_isbn_duplicate(book, existing_isbns):
+                            ol_filtered.append(book)
+                            existing_isbns.update(_collect_isbns([book]))
 
-            if not dry_run:
-                conn = _persist_books(conn, skill, ol_top, fallback_tier=ol_fallback_tier)
-                conn.commit()
+                    print(f"  open_library: {len(ol_filtered)} books after broader fallback")
 
-            results.append({
-                "skill_uri": skill["uri"],
-                "skill": skill["title"],
-                "source": "open_library",
-                "books": ol_top,
-            })
+                    # Final year fallback within broader: go back to 2012 if still too few
+                    if len(ol_filtered) < MIN_BOOKS_THRESHOLD:
+                        print(f"  [FALLBACK-BROADER-YEAR] Only {len(ol_filtered)} books, trying broader with >= 2012...")
+                        ol_fallback_tier = 4  # Broader + year fallback
+                        try:
+                            broader_older = filter_books(
+                                broader_books,
+                                min_year=2012,
+                                require_description=False,
+                                target_occupation=skill.get("occupation_title"),
+                                skill_title=None,
+                            )
+                        except Exception as e:
+                            print(f"  [ERROR] broader year fallback filtering failed: {e}")
+                            broader_older = []
 
-        # Update pre-filter book count as popularity signal
-        # Combined unique books from both sources before hard filters
-        if not dry_run and not (google_skipped and ol_skipped):
-            total_pre_filter = google_pre_filter_count + ol_pre_filter_count
-            if total_pre_filter > 0:
-                update_google_books_total(conn, skill["uri"], total_pre_filter)
-                conn.commit()
-                print(f"  Pre-filter book count (popularity signal): {total_pre_filter}")
+                        existing_isbns = _collect_isbns(ol_filtered)
+                        for book in broader_older:
+                            if not _is_isbn_duplicate(book, existing_isbns):
+                                ol_filtered.append(book)
+                                existing_isbns.update(_collect_isbns([book]))
+
+                        print(f"  open_library: {len(ol_filtered)} books after broader year fallback (>= 2012)")
+
+                # Enrichment waterfall — fetch missing fields from Google Books
+                if ol_filtered:
+                    # Layer 1: Google Books ISBN lookup (description, free access, thumbnail)
+                    needs_enrichment = [
+                        b for b in ol_filtered
+                        if not b.get("description") or not b.get("free_access") or not b.get("thumbnail")
+                    ]
+                    if needs_enrichment:
+                        print(f"  [ENRICH] Google Books ISBN lookup for {len(needs_enrichment)} books...")
+                        for book in needs_enrichment:
+                            isbn = book.get("isbn_13") or book.get("isbn_10")
+                            if isbn:
+                                enrichment = google_client.fetch_enrichment_by_isbn(isbn)
+                                if enrichment:
+                                    if not book.get("description") and enrichment.get("description"):
+                                        book["description"] = enrichment["description"]
+                                    if not book.get("free_access") and enrichment.get("free_access"):
+                                        book["free_access"] = enrichment["free_access"]
+                                    if not book.get("thumbnail") and enrichment.get("thumbnail"):
+                                        book["thumbnail"] = enrichment["thumbnail"]
+                                    if not book.get("page_count") and enrichment.get("page_count"):
+                                        book["page_count"] = enrichment["page_count"]
+                                    print(f"    [Google] Enriched: {book.get('title', '')[:50]}")
+
+                    # Layer 2: Open Library Works API (free, already have work IDs)
+                    missing = [b for b in ol_filtered if not b.get("description")]
+                    if missing:
+                        print(f"  [ENRICH] Open Library Works API for {len(missing)} books...")
+                        open_library_client.enrich_with_descriptions(missing)
+
+                    # Layer 3: Synthetic description from title/subjects (fallback)
+                    for book in ol_filtered:
+                        if not book.get("description"):
+                            book["description"] = build_synthetic_description(book)
+
+                    enriched_real = sum(1 for b in ol_filtered if not b["description"].startswith("A book about"))
+                    print(f"  [ENRICH] {enriched_real}/{len(ol_filtered)} books got real descriptions")
+
+                # Semantic reranking (all books now have some description text)
+                reranked = rerank_fn(skill, ol_filtered, top_n=10)
+
+                for b, score in reranked:
+                    print(f"    {b.get('title', '')[:40]}: {score:.2f}")
+
+                relevance_threshold = MIN_RELEVANCE_SCORE_FALLBACK if used_fallback else MIN_RELEVANCE_SCORE
+                reranked = [(b, score) for b, score in reranked if score >= relevance_threshold]
+
+                if len(reranked) < len(ol_filtered):
+                    print(f"  [RELEVANCE] Filtered to {len(reranked)} books (score >= {relevance_threshold})")
+
+                semantically_filtered = [b for b, score in reranked]
+                ranked_books = rank_books(list(enumerate(semantically_filtered)), source="open_library")
+                ol_top = ranked_books[:5]
+
+                print(f"  Returning top {len(ol_top)} books (fallback_tier={ol_fallback_tier})")
+
+                if not ol_top:
+                    print("    (no books passed filters)")
+                else:
+                    for b in ol_top:
+                        print(f"    - {b.get('title', '')} | {b.get('published_year', '')}")
+
+                if not dry_run:
+                    conn = _persist_books(conn, skill, ol_top, fallback_tier=ol_fallback_tier)
+                    record_search_attempt(conn, skill["uri"], skill["occupation_uri"], "open_library", books_found=len(ol_top))
+                    conn.commit()
+
+                results.append({
+                    "skill_uri": skill["uri"],
+                    "skill": skill["title"],
+                    "source": "open_library",
+                    "books": ol_top,
+                })
+
+            # Update pre-filter book count as popularity signal
+            # Combined unique books from both sources before hard filters
+            if not dry_run and not (google_skipped and ol_skipped):
+                total_pre_filter = google_pre_filter_count + ol_pre_filter_count
+                if total_pre_filter > 0:
+                    update_google_books_total(conn, skill["uri"], total_pre_filter)
+                    conn.commit()
+                    print(f"  Pre-filter book count (popularity signal): {total_pre_filter}")
+
+        except Exception as e:
+            rerank_failures += 1
+            print(f"  [RERANK FATAL] Skill '{skill['title']}' failed: {e}")
+            print(f"  [RERANK FATAL] Failure {rerank_failures}/{MAX_RERANK_FAILURES} — skill will be retried on next run")
+            # Rollback any partial work for this skill
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            if rerank_failures >= MAX_RERANK_FAILURES:
+                print(f"\n{'=' * 60}")
+                print(f"TERMINATING: {MAX_RERANK_FAILURES} rerank failures reached. Cohere API may be down.")
+                print(f"{'=' * 60}")
+                break
 
         # Throttle between skills
         time.sleep(1.0 + random.random() * 0.5)

@@ -1,8 +1,12 @@
+import time
 from typing import Dict
 
 import numpy as np
 
 from embeddings.cohere_client import DEFAULT_MODEL, get_cohere_client
+
+RERANK_MAX_RETRIES = 3
+RERANK_BASE_DELAY = 5  # seconds
 
 
 def compute_similarity(skill: Dict, book: Dict) -> float:
@@ -83,11 +87,23 @@ def rerank_books_for_skill(
 
     documents = [f"{b.get('title', '')}: {b.get('description', '')}" for b in books]
 
-    response = co.rerank(
-        query=query,
-        documents=documents,
-        model="rerank-english-v3.0",
-        top_n=top_n,
-    )
+    last_error = None
+    for attempt in range(1, RERANK_MAX_RETRIES + 1):
+        try:
+            response = co.rerank(
+                query=query,
+                documents=documents,
+                model="rerank-english-v3.0",
+                top_n=top_n,
+            )
+            return [(books[r.index], r.relevance_score) for r in response.results]
+        except Exception as e:
+            last_error = e
+            if attempt < RERANK_MAX_RETRIES:
+                delay = RERANK_BASE_DELAY * attempt
+                print(f"  [RERANK RETRY] Attempt {attempt}/{RERANK_MAX_RETRIES} failed: {e}. Retrying in {delay}s...")
+                time.sleep(delay)
+            else:
+                print(f"  [RERANK FAILED] All {RERANK_MAX_RETRIES} attempts failed: {e}")
 
-    return [(books[r.index], r.relevance_score) for r in response.results]
+    raise last_error
