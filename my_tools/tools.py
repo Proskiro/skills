@@ -1,8 +1,9 @@
 import hashlib
 import re
+from typing import Optional, List, Dict
 
 
-def extract_root_code(uri: str) -> str | None:
+def extract_root_code(uri: str) -> Optional[str]:
     """
     Extracts the root code (like S3.2.5 or C2131) from a given ESCO URI.
     Returns None if the URI doesn't follow that format (e.g., UUID-based).
@@ -56,7 +57,7 @@ def convert_isced_to_k(code: str) -> str:
     return f"K{root}." + ".".join(sublevels)
 
 
-def generate_skill_code(uri: str, broader_uris: list[str], code_lookup: dict) -> str:
+def generate_skill_code(uri: str, broader_uris: List[str], code_lookup: Dict) -> str:
     """
     Unified generator for S, K(ISCED-F), L, and UUID hierarchies.
     """
