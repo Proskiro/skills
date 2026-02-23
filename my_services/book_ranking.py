@@ -1,4 +1,4 @@
-p"""
+"""
 Book ranking logic with source-aware scoring.
 """
 
