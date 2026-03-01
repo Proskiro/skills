@@ -2,10 +2,18 @@
 
 import re
 
+import ftfy
 from itemloaders import ItemLoader
 from itemloaders.processors import Identity, Join, MapCompose, TakeFirst
 
 from .items import OccupationItem, SkillItem
+
+
+def fix_encoding(s):
+    """Fix mojibake and encoding errors (e.g. Â\xa0 → space, â€™ → ')."""
+    if not isinstance(s, str):
+        return s
+    return ftfy.fix_text(s)
 
 
 def remove_white_space(s):
@@ -32,7 +40,9 @@ class BaseESCOLoader(ItemLoader):
     Keeps JSON structure intact by default.
     """
 
-    default_input_processor = MapCompose(remove_white_space, string_strip, filter_empty)
+    default_input_processor = MapCompose(
+        fix_encoding, remove_white_space, string_strip, filter_empty
+    )
     default_output_processor = TakeFirst()
 
 
