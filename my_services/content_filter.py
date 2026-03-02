@@ -101,6 +101,7 @@ EXCLUDED_OCCUPATION_KEYWORDS = {
     "instrumentalist",
     # Interest-based finance
     "usury",
+    "interest rate",
     "loan officer",
     "debt collector",
     "payday loan",
@@ -160,10 +161,20 @@ EXCLUDED_SKILL_KEYWORDS = {
     "tarot reading",
     "divination",
     "occult",
+    "psychic",
+    "clairvoyant",
+    "spiritualist",
     # Adult entertainment skills
     "striptease",
     "adult entertainment",
+    "nightclub",
+    "pornograph",
+    "exotic danc",
     # Interest-based finance skills
+    "usury",
+    "interest rate",
+    "mortgage",
+    "credit",
     "debt collection",
     "payday lending",
     # Music-related skills
