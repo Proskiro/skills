@@ -52,18 +52,36 @@ EXCLUDED_OCCUPATION_KEYWORDS = {
     "lottery",
     # Pork/non-halal food specific roles
     "pork",
+    "pig farm",
+    "swine",
+    "piggery",
     # Adult entertainment
     "adult entertainment",
     "nightclub",
+    "strip club",
+    "stripper",
+    "exotic dancer",
+    "adult film",
+    "pornograph",
+    # Tobacco
+    "tobacco",
+    "cigarette",
+    "cigar",
+    # Fortune-telling / Occult
+    "fortune tell",
+    "psychic",
+    "astrologer",
+    "astrology",
+    "tarot",
+    "clairvoyant",
+    "divination",
+    "occult",
+    "spiritualist",
     # Insurance (interest-based conventional insurance)
-    "insurance agent",
-    "insurance broker",
-    "insurance underwriter",
-    "insurance adjuster",
-    "insurance sales",
+    "insurance",
     "actuary",
+    "actuarial",
     "claims adjuster",
-    "insurance assessor",
     # Music/Entertainment
     "musician",
     "singer",
@@ -79,10 +97,15 @@ EXCLUDED_OCCUPATION_KEYWORDS = {
     "music teacher",
     "music therapist",
     "orchestra",
-    "conductor",
+    "orchestra conductor",
     "instrumentalist",
     # Interest-based finance
     "usury",
+    "loan officer",
+    "debt collector",
+    "payday loan",
+    "mortgage",
+    "credit",
 }
 
 # Keywords in skill titles/descriptions to exclude (case-insensitive)
@@ -114,6 +137,8 @@ EXCLUDED_SKILL_KEYWORDS = {
     # Pork-related
     "pork processing",
     "pork butchery",
+    "pig farming",
+    "swine husbandry",
     # Insurance skills (conventional interest-based)
     "insurance policy",
     "insurance claim",
@@ -126,6 +151,21 @@ EXCLUDED_SKILL_KEYWORDS = {
     "health insurance",
     "property insurance",
     "liability insurance",
+    # Tobacco-related skills
+    "tobacco processing",
+    "cigarette manufacturing",
+    # Fortune-telling / Occult skills
+    "fortune telling",
+    "astrology",
+    "tarot reading",
+    "divination",
+    "occult",
+    # Adult entertainment skills
+    "striptease",
+    "adult entertainment",
+    # Interest-based finance skills
+    "debt collection",
+    "payday lending",
     # Music-related skills
     "musical instrument",
     "music theory",
