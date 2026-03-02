@@ -10,6 +10,7 @@ from my_scraper.items import (
     SkillHierarchyItem,
     SkillItem,
 )
+from my_services.content_filter import is_occupation_excluded
 
 
 class PostgresPipeline:
@@ -71,6 +72,10 @@ class PostgresPipeline:
     # ---------------- insert helpers ----------------
 
     def upsert_occupation(self, item):
+        blocked = is_occupation_excluded(
+            item.get("uri", ""), item.get("preferred_title", "")
+        )
+
         query = """
             INSERT INTO occupations (
                 uri,
@@ -83,6 +88,7 @@ class PostgresPipeline:
                 status,
                 is_leaf,
                 is_functional_leaf,
+                is_blocked,
                 created_at,
                 updated_at
             )
@@ -98,6 +104,7 @@ class PostgresPipeline:
                 status                   = EXCLUDED.status,
                 is_leaf                  = EXCLUDED.is_leaf,
                 is_functional_leaf       = EXCLUDED.is_functional_leaf,
+                is_blocked               = EXCLUDED.is_blocked,
                 updated_at               = now();
         """
 
@@ -113,6 +120,7 @@ class PostgresPipeline:
                 item.get("status"),
                 item.get("is_leaf"),
                 item.get("is_functional_leaf"),
+                blocked,
                 None,  # created_at → DB default
                 None,  # updated_at → handled by now()
             )
