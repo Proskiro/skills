@@ -2,14 +2,22 @@
 Semantic matching: ESCO occupations → O*NET-SOC codes within each ISCO group.
 
 Uses Cohere embeddings to match each ESCO occupation (title + description)
-to the most relevant O*NET-SOC code(s) within its ISCO group. Then assigns
-only the alternate titles from matched O*NET-SOC codes to each ESCO occupation.
+to the most relevant O*NET-SOC code(s) within its ISCO group. Then filters
+the alternate titles from matched O*NET codes by per-title semantic relevance.
 
-This replaces the coarse ISCO-level grouping with per-occupation matching.
+Improvements over naive matching:
+  1. Higher default threshold (0.55) to reduce false O*NET code matches
+  2. Cross-domain blacklist — blocks O*NET major groups that are semantically
+     adjacent but functionally unrelated (e.g. transportation ↔ animal care)
+  3. Top-N cap — keeps at most 3 best O*NET code matches per ESCO occupation
+  4. Second-stage title filter — after code matching, each alt title is
+     embedded and compared to the ESCO occupation; only titles above a
+     title-level threshold are kept
 
 Usage:
     python scripts/match_onet_to_esco.py --env .env.dev --dry-run
-    python scripts/match_onet_to_esco.py --env .env.dev --threshold 0.4
+    python scripts/match_onet_to_esco.py --env .env.dev --threshold 0.55
+    python scripts/match_onet_to_esco.py --env .env.dev --isco 5164
     python scripts/match_onet_to_esco.py --env .env.dev
 
 Output:
@@ -51,6 +59,49 @@ OUTPUT_CSV = OUTPUT_DIR / "esco_onet_matched_titles.csv"
 EMBED_MODEL = "embed-english-v3.0"
 EMBED_INPUT_TYPE = "search_document"
 EMBED_BATCH_SIZE = 96  # Cohere's max batch size
+
+# Matching defaults
+DEFAULT_CODE_THRESHOLD = 0.55    # Min similarity for O*NET code match
+DEFAULT_TITLE_THRESHOLD = 0.40   # Min similarity for keeping an alt title
+DEFAULT_MAX_ONET_CODES = 3       # Max O*NET codes to match per ESCO occupation
+
+# ---------------------------------------------------------------------------
+# Cross-domain blacklist
+# ---------------------------------------------------------------------------
+# Maps ISCO 2-digit major groups to O*NET SOC 2-digit prefixes that should
+# never match, even if embeddings score above threshold.  These are codes
+# that share superficially similar words ("attendant", "supervisor") but
+# belong to completely unrelated domains.
+#
+# ISCO major groups:  https://www.ilo.org/public/english/bureau/stat/isco/isco08/
+# SOC major groups:   https://www.bls.gov/soc/2018/major_groups.htm
+
+CROSS_DOMAIN_BLACKLIST: dict[str, set[str]] = {
+    # ISCO 5 – Service & Sales → block Transportation (53)
+    "51": {"53"},
+    "52": {"53"},
+    "53": {"53"},
+    "54": {"53"},
+    # ISCO 6 – Agriculture → block Transportation (53)
+    "61": {"53"},
+    "62": {"53"},
+    "63": {"53"},
+    # ISCO 9 – Elementary occupations → block Military (55)
+    "91": {"55"},
+    "92": {"55"},
+    "93": {"55"},
+    "94": {"55"},
+    "95": {"55"},
+    "96": {"55"},
+}
+
+
+def is_blacklisted(isco_4digit: str, onet_code: str) -> bool:
+    """Check if an O*NET code is blacklisted for a given ISCO group."""
+    isco_2 = isco_4digit[:2]
+    onet_2 = onet_code[:2]
+    blocked = CROSS_DOMAIN_BLACKLIST.get(isco_2, set())
+    return onet_2 in blocked
 
 
 # ---------------------------------------------------------------------------
@@ -208,29 +259,72 @@ def make_text(title: str, description: str) -> str:
     return title
 
 
+def filter_alt_titles(
+    client: cohere.Client,
+    esco_embed: np.ndarray,
+    alt_titles: list[str],
+    title_threshold: float,
+) -> list[str]:
+    """
+    Second-stage filter: keep only alt titles semantically close to the
+    ESCO occupation.
+
+    Args:
+        esco_embed: (1, d) embedding of the ESCO occupation
+        alt_titles: candidate alternate titles
+        title_threshold: minimum cosine similarity to keep a title
+
+    Returns: filtered list of alt titles, sorted alphabetically
+    """
+    if not alt_titles:
+        return []
+
+    title_embeds = embed_texts(client, alt_titles)
+    sims = cosine_similarity(esco_embed.reshape(1, -1), title_embeds)[0]
+    kept = [t for t, s in zip(alt_titles, sims) if s >= title_threshold]
+    return sorted(kept)
+
+
 def match_isco_group(
     client: cohere.Client,
     esco_occs: list[dict],
     onet_codes: dict[str, list[str]],
     onet_descriptions: dict[str, dict],
-    threshold: float,
+    isco_code: str,
+    threshold: float = DEFAULT_CODE_THRESHOLD,
+    title_threshold: float = DEFAULT_TITLE_THRESHOLD,
+    max_onet_codes: int = DEFAULT_MAX_ONET_CODES,
 ) -> list[dict]:
     """
     Match ESCO occupations to O*NET-SOC codes within a single ISCO group.
 
-    Returns list of {esco_uri, isco_code, matched_onet_socs, alt_titles}
+    Steps:
+      1. Blacklist-filter O*NET codes that are cross-domain
+      2. Embed ESCO occupations + O*NET occupation descriptions
+      3. For each ESCO occupation, pick top-N O*NET codes above threshold
+      4. Collect candidate alt titles from matched codes
+      5. Second-stage: embed alt titles, keep only those above title_threshold
+
+    Returns list of {esco_uri, isco_code, matched_onet_socs, alt_titles, ...}
     """
-    # Filter O*NET codes to those we have descriptions for
+    # Filter O*NET codes: must have descriptions & not be blacklisted
     valid_onet = {}
+    blacklisted_count = 0
     for code, alt_titles in onet_codes.items():
-        if code in onet_descriptions:
-            valid_onet[code] = alt_titles
+        if code not in onet_descriptions:
+            continue
+        if is_blacklisted(isco_code, code):
+            blacklisted_count += 1
+            continue
+        valid_onet[code] = alt_titles
+
+    if blacklisted_count:
+        logger.info("    Blacklisted %d cross-domain O*NET codes", blacklisted_count)
 
     if not valid_onet:
-        # No O*NET descriptions available — skip this group
         return []
 
-    # Build texts for embedding
+    # ── Stage 1: match ESCO → O*NET codes ──
     esco_texts = [make_text(occ["title"], occ["description"]) for occ in esco_occs]
     onet_code_list = list(valid_onet.keys())
     onet_texts = [
@@ -238,29 +332,25 @@ def match_isco_group(
         for code in onet_code_list
     ]
 
-    # Embed all texts in one batch
     all_texts = esco_texts + onet_texts
     embeddings = embed_texts(client, all_texts)
 
     esco_embeds = embeddings[:len(esco_texts)]
     onet_embeds = embeddings[len(esco_texts):]
 
-    # Compute similarity matrix: (num_esco, num_onet)
     sim_matrix = cosine_similarity(esco_embeds, onet_embeds)
 
     results = []
     for i, occ in enumerate(esco_occs):
-        # Find O*NET codes above threshold
         scores = sim_matrix[i]
-        matched_indices = np.where(scores >= threshold)[0]
 
-        if len(matched_indices) == 0:
-            # Take the single best match if nothing passes threshold
+        # Indices above threshold, sorted descending, capped to top-N
+        above = np.where(scores >= threshold)[0]
+        if len(above) == 0:
+            # Fallback: single best if reasonably close
             best_idx = int(np.argmax(scores))
-            best_score = scores[best_idx]
-            # Only include if score is at least somewhat relevant
-            if best_score >= threshold * 0.7:
-                matched_indices = [best_idx]
+            if scores[best_idx] >= threshold * 0.8:
+                above = np.array([best_idx])
             else:
                 results.append({
                     "esco_uri": occ["uri"],
@@ -269,26 +359,40 @@ def match_isco_group(
                     "matched_onet_socs": "",
                     "alt_titles": "",
                     "match_scores": "",
+                    "titles_before_filter": 0,
+                    "titles_after_filter": 0,
                 })
                 continue
 
-        # Collect matched O*NET-SOC codes and their alt titles
+        # Sort by score descending, keep top-N
+        ranked = sorted(above, key=lambda idx: scores[idx], reverse=True)
+        top_indices = ranked[:max_onet_codes]
+
+        # Gather matched codes and all candidate alt titles
         matched_socs = []
         matched_scores = []
-        all_alt_titles = set()
-        for idx in matched_indices:
+        candidate_titles: set[str] = set()
+        for idx in top_indices:
             code = onet_code_list[idx]
             matched_socs.append(code)
             matched_scores.append(f"{scores[idx]:.3f}")
-            all_alt_titles.update(valid_onet[code])
+            candidate_titles.update(valid_onet[code])
+
+        # ── Stage 2: filter alt titles by per-title similarity ──
+        candidate_list = sorted(candidate_titles)
+        filtered_titles = filter_alt_titles(
+            client, esco_embeds[i], candidate_list, title_threshold
+        )
 
         results.append({
             "esco_uri": occ["uri"],
             "isco_code": occ["isco_code"],
             "esco_title": occ["title"],
             "matched_onet_socs": "|".join(matched_socs),
-            "alt_titles": "\n".join(sorted(all_alt_titles)),
+            "alt_titles": "\n".join(filtered_titles),
             "match_scores": "|".join(matched_scores),
+            "titles_before_filter": len(candidate_list),
+            "titles_after_filter": len(filtered_titles),
         })
 
     return results
@@ -303,8 +407,12 @@ def main() -> None:
         description="Semantically match ESCO occupations to O*NET-SOC codes"
     )
     parser.add_argument("--env", required=True, help="Path to .env file (e.g. .env.dev)")
-    parser.add_argument("--threshold", type=float, default=0.45,
-                        help="Cosine similarity threshold for matching (default: 0.45)")
+    parser.add_argument("--threshold", type=float, default=DEFAULT_CODE_THRESHOLD,
+                        help=f"Cosine similarity threshold for O*NET code matching (default: {DEFAULT_CODE_THRESHOLD})")
+    parser.add_argument("--title-threshold", type=float, default=DEFAULT_TITLE_THRESHOLD,
+                        help=f"Cosine similarity threshold for alt title filtering (default: {DEFAULT_TITLE_THRESHOLD})")
+    parser.add_argument("--max-codes", type=int, default=DEFAULT_MAX_ONET_CODES,
+                        help=f"Max O*NET codes to match per ESCO occupation (default: {DEFAULT_MAX_ONET_CODES})")
     parser.add_argument("--dry-run", action="store_true",
                         help="Only process first 5 ISCO groups as a preview")
     parser.add_argument("--isco", type=str, default=None,
@@ -329,7 +437,9 @@ def main() -> None:
 
     logger.info("=" * 60)
     logger.info("ESCO → O*NET Semantic Matching")
-    logger.info("  Threshold: %.2f", args.threshold)
+    logger.info("  Code threshold: %.2f", args.threshold)
+    logger.info("  Title threshold: %.2f", args.title_threshold)
+    logger.info("  Max O*NET codes: %d", args.max_codes)
     logger.info("  Dry run: %s", args.dry_run)
     logger.info("=" * 60)
 
@@ -372,23 +482,33 @@ def main() -> None:
             i + 1, len(groups_to_process), isco, len(esco_occs), len(onet_codes),
         )
 
-        results = match_isco_group(client, esco_occs, onet_codes, onet_descriptions, args.threshold)
+        results = match_isco_group(
+            client, esco_occs, onet_codes, onet_descriptions,
+            isco_code=isco,
+            threshold=args.threshold,
+            title_threshold=args.title_threshold,
+            max_onet_codes=args.max_codes,
+        )
         all_results.extend(results)
 
         # Print sample matches for visibility
         for r in results[:2]:
             matched = r["matched_onet_socs"] or "(none)"
             scores = r["match_scores"] or "n/a"
-            n_titles = len(r["alt_titles"].split("\n")) if r["alt_titles"] else 0
-            logger.info("    %s → %s (scores: %s, %d alt titles)",
-                        r["esco_title"], matched, scores, n_titles)
+            before = r.get("titles_before_filter", 0)
+            after = r.get("titles_after_filter", 0)
+            logger.info("    %s → %s (scores: %s, titles: %d→%d)",
+                        r["esco_title"], matched, scores, before, after)
 
     # 3. Write output
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    # Strip internal tracking fields before writing
+    output_fields = [
+        "esco_uri", "isco_code", "esco_title", "matched_onet_socs",
+        "match_scores", "titles_before_filter", "titles_after_filter", "alt_titles",
+    ]
     with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=[
-            "esco_uri", "isco_code", "esco_title", "matched_onet_socs", "match_scores", "alt_titles"
-        ])
+        writer = csv.DictWriter(f, fieldnames=output_fields)
         writer.writeheader()
         writer.writerows(all_results)
 
@@ -401,6 +521,12 @@ def main() -> None:
     matched_count = sum(1 for r in all_results if r["matched_onet_socs"])
     logger.info("  With O*NET match: %d", matched_count)
     logger.info("  Without match: %d", len(all_results) - matched_count)
+    total_before = sum(r.get("titles_before_filter", 0) for r in all_results)
+    total_after = sum(r.get("titles_after_filter", 0) for r in all_results)
+    if total_before:
+        logger.info("  Alt titles: %d → %d (%.0f%% filtered out)",
+                    total_before, total_after,
+                    (1 - total_after / total_before) * 100)
     logger.info("Output: %s", OUTPUT_CSV)
 
 
