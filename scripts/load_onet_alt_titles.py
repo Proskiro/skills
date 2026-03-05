@@ -1,14 +1,21 @@
 """
-Load O*NET alternate titles into the occupations table.
+Load semantically-filtered O*NET alternate titles into the occupations table.
 
-Reads the ISCO → O*NET alternate-titles CSV produced by
-isco_to_onet_alt_titles.py and bulk-updates the `onet_alt_titles` column
-in the `occupations` table grouped by ISCO code.
+Reads the per-occupation matched CSV produced by match_onet_to_esco.py and
+updates the `onet_alt_titles` column for each individual occupation by URI.
+
+This ensures each occupation only gets alt titles that were semantically
+matched to it — not every title in the ISCO group.
+
+Pipeline:
+    1. isco_to_onet_alt_titles.py   → raw ISCO→O*NET crosswalk
+    2. match_onet_to_esco.py        → per-occupation semantic filtering
+    3. load_onet_alt_titles.py      → load filtered titles into DB  (this script)
 
 Usage:
-    python scripts/load_onet_alt_titles.py --env .env.dev --dry-run   # preview against dev
-    python scripts/load_onet_alt_titles.py --env .env.dev              # load into dev
-    python scripts/load_onet_alt_titles.py --env .env                  # load into production
+    python scripts/load_onet_alt_titles.py --env .env.dev --dry-run
+    python scripts/load_onet_alt_titles.py --env .env.dev
+    python scripts/load_onet_alt_titles.py --env .env
 """
 
 from __future__ import annotations
@@ -18,7 +25,6 @@ import csv
 import logging
 import os
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 import psycopg2
@@ -29,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILLS_DIR = SCRIPT_DIR.parent
-CSV_PATH = SCRIPT_DIR / "output" / "isco_onet_alternate_titles.csv"
+CSV_PATH = SCRIPT_DIR / "output" / "esco_onet_matched_titles.csv"
 
 
 def get_connection(env_file: Path):
@@ -52,22 +58,27 @@ def get_connection(env_file: Path):
     return conn
 
 
-def load_csv(path: Path) -> dict[str, list[str]]:
-    """Read the CSV and group deduplicated alternate titles by ISCO group."""
-    groups: dict[str, set[str]] = defaultdict(set)
+def load_matched_csv(path: Path) -> dict[str, str]:
+    """
+    Read the per-occupation matched CSV.
+
+    Returns: {esco_uri: newline-separated alt titles string}
+    """
+    occupations: dict[str, str] = {}
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            isco = row["iscoGroup"].strip()
-            title = row["alternateTitle"].strip()
-            if isco and title:
-                groups[isco].add(title)
-
-    return {isco: sorted(titles) for isco, titles in groups.items()}
+            uri = row["esco_uri"].strip()
+            alt_titles = row["alt_titles"].strip()
+            if uri:
+                occupations[uri] = alt_titles
+    return occupations
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Load O*NET alternate titles into occupations DB")
+    parser = argparse.ArgumentParser(
+        description="Load semantically-filtered O*NET alternate titles into occupations DB"
+    )
     parser.add_argument("--env", required=True, help="Path to .env file (e.g. .env.dev or .env)")
     parser.add_argument("--dry-run", action="store_true", help="Preview changes without writing to DB")
     args = parser.parse_args()
@@ -81,12 +92,16 @@ def main() -> None:
 
     if not CSV_PATH.exists():
         logger.error("CSV not found: %s", CSV_PATH)
-        logger.error("Run isco_to_onet_alt_titles.py first to generate it.")
+        logger.error("Run match_onet_to_esco.py first to generate it.")
         sys.exit(1)
 
     logger.info("Reading %s ...", CSV_PATH)
-    groups = load_csv(CSV_PATH)
-    logger.info("Loaded %d ISCO groups with alternate titles", len(groups))
+    occupations = load_matched_csv(CSV_PATH)
+    with_titles = sum(1 for t in occupations.values() if t)
+    logger.info(
+        "Loaded %d occupations (%d with alt titles, %d without)",
+        len(occupations), with_titles, len(occupations) - with_titles,
+    )
 
     conn = get_connection(env_path)
     cur = conn.cursor()
@@ -101,41 +116,47 @@ def main() -> None:
         logger.info("Ensured onet_alt_titles column exists")
 
         updated = 0
-        skipped = 0
+        cleared = 0
+        not_found = 0
 
-        for isco, titles in sorted(groups.items()):
-            isco_code = f"C{isco}"
-            titles_text = "\n".join(titles)
+        for uri, alt_titles in sorted(occupations.items()):
+            # Store titles or NULL if no titles matched
+            titles_value = alt_titles if alt_titles else None
 
             if args.dry_run:
-                # Check how many occupations would be affected
                 cur.execute(
-                    "SELECT COUNT(*) FROM occupations WHERE isco_code LIKE %s",
-                    (f"{isco_code}%",),
+                    "SELECT preferred_title FROM occupations WHERE uri = %s",
+                    (uri,),
                 )
-                count = cur.fetchone()[0]
-                if count:
+                row = cur.fetchone()
+                if row:
+                    title_count = len(alt_titles.split("\n")) if alt_titles else 0
                     logger.info(
-                        "[DRY RUN] %s → %d occupations, %d alternate titles",
-                        isco_code, count, len(titles),
+                        "[DRY RUN] %s → %d alt titles",
+                        row[0], title_count,
                     )
-                    updated += count
+                    if alt_titles:
+                        updated += 1
+                    else:
+                        cleared += 1
                 else:
-                    skipped += 1
+                    not_found += 1
             else:
                 cur.execute(
                     """
                     UPDATE occupations
                     SET onet_alt_titles = %s
-                    WHERE isco_code LIKE %s
+                    WHERE uri = %s
                     """,
-                    (titles_text, f"{isco_code}%"),
+                    (titles_value, uri),
                 )
-                rows = cur.rowcount
-                if rows:
-                    updated += rows
+                if cur.rowcount:
+                    if alt_titles:
+                        updated += 1
+                    else:
+                        cleared += 1
                 else:
-                    skipped += 1
+                    not_found += 1
 
         if not args.dry_run:
             conn.commit()
@@ -143,9 +164,10 @@ def main() -> None:
 
         print(f"\n{'DRY RUN ' if args.dry_run else ''}SUMMARY")
         print("=" * 40)
-        print(f"ISCO groups in CSV:        {len(groups)}")
-        print(f"Occupations updated:       {updated}")
-        print(f"ISCO groups with no match: {skipped}")
+        print(f"Occupations in CSV:          {len(occupations)}")
+        print(f"Updated with alt titles:     {updated}")
+        print(f"Cleared (no matched titles): {cleared}")
+        print(f"Not found in DB:             {not_found}")
 
     except Exception:
         conn.rollback()
