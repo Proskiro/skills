@@ -1,16 +1,15 @@
-"""
-Load semantically-filtered O*NET alternate titles into the occupations table.
+"""Load semantically-filtered O*NET alternate titles into the occupations table.
 
 Reads the per-occupation matched CSV produced by match_onet_to_esco.py and
 updates the `onet_alt_titles` column for each individual occupation by URI.
 
 This ensures each occupation only gets alt titles that were semantically
-matched to it — not every title in the ISCO group.
+matched to it -- not every title in the ISCO group.
 
 Pipeline:
-    1. isco_to_onet_alt_titles.py   → raw ISCO→O*NET crosswalk
-    2. match_onet_to_esco.py        → per-occupation semantic filtering
-    3. load_onet_alt_titles.py      → load filtered titles into DB  (this script)
+    1. isco_to_onet_alt_titles.py   -> raw ISCO->O*NET crosswalk
+    2. match_onet_to_esco.py        -> per-occupation semantic filtering
+    3. load_onet_alt_titles.py      -> load filtered titles into DB  (this script)
 
 Usage:
     python scripts/load_onet_alt_titles.py --env .env.dev --dry-run
@@ -59,20 +58,16 @@ def get_connection(env_file: Path):
 
 
 def load_matched_csv(path: Path) -> dict[str, str]:
-    """
-    Read the per-occupation matched CSV.
-
-    Returns: {esco_uri: newline-separated alt titles string}
-    """
-    occupations: dict[str, str] = {}
+    """Read the per-occupation matched CSV and return {esco_uri: alt_titles_text}."""
+    result = {}
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             uri = row["esco_uri"].strip()
             alt_titles = row["alt_titles"].strip()
-            if uri:
-                occupations[uri] = alt_titles
-    return occupations
+            if uri and alt_titles:
+                result[uri] = alt_titles
+    return result
 
 
 def main() -> None:
@@ -91,70 +86,46 @@ def main() -> None:
         sys.exit(1)
 
     if not CSV_PATH.exists():
-        logger.error("CSV not found: %s", CSV_PATH)
+        logger.error("Matched CSV not found: %s", CSV_PATH)
         logger.error("Run match_onet_to_esco.py first to generate it.")
         sys.exit(1)
 
     logger.info("Reading %s ...", CSV_PATH)
-    occupations = load_matched_csv(CSV_PATH)
-    with_titles = sum(1 for t in occupations.values() if t)
-    logger.info(
-        "Loaded %d occupations (%d with alt titles, %d without)",
-        len(occupations), with_titles, len(occupations) - with_titles,
-    )
+    uri_titles = load_matched_csv(CSV_PATH)
+    logger.info("Loaded %d ESCO occupations with matched alt titles", len(uri_titles))
 
     conn = get_connection(env_path)
     cur = conn.cursor()
 
     try:
-        # Ensure the column exists
-        cur.execute("""
-            ALTER TABLE occupations
-            ADD COLUMN IF NOT EXISTS onet_alt_titles TEXT;
-        """)
+        cur.execute("ALTER TABLE occupations ADD COLUMN IF NOT EXISTS onet_alt_titles TEXT;")
         conn.commit()
-        logger.info("Ensured onet_alt_titles column exists")
+
+        # Clear all existing alt titles so we don't leave stale data
+        if not args.dry_run:
+            cur.execute("UPDATE occupations SET onet_alt_titles = NULL")
+            logger.info("Cleared existing onet_alt_titles")
 
         updated = 0
-        cleared = 0
         not_found = 0
 
-        for uri, alt_titles in sorted(occupations.items()):
-            # Store titles or NULL if no titles matched
-            titles_value = alt_titles if alt_titles else None
-
+        for uri, titles_text in sorted(uri_titles.items()):
             if args.dry_run:
-                cur.execute(
-                    "SELECT preferred_title FROM occupations WHERE uri = %s",
-                    (uri,),
-                )
+                cur.execute("SELECT preferred_title FROM occupations WHERE uri = %s", (uri,))
                 row = cur.fetchone()
                 if row:
-                    title_count = len(alt_titles.split("\n")) if alt_titles else 0
-                    logger.info(
-                        "[DRY RUN] %s → %d alt titles",
-                        row[0], title_count,
-                    )
-                    if alt_titles:
-                        updated += 1
-                    else:
-                        cleared += 1
+                    n_titles = len(titles_text.split("\n"))
+                    logger.info("[DRY RUN] %s -> %d alt titles", row[0], n_titles)
+                    updated += 1
                 else:
                     not_found += 1
             else:
                 cur.execute(
-                    """
-                    UPDATE occupations
-                    SET onet_alt_titles = %s
-                    WHERE uri = %s
-                    """,
-                    (titles_value, uri),
+                    "UPDATE occupations SET onet_alt_titles = %s WHERE uri = %s",
+                    (titles_text, uri),
                 )
                 if cur.rowcount:
-                    if alt_titles:
-                        updated += 1
-                    else:
-                        cleared += 1
+                    updated += cur.rowcount
                 else:
                     not_found += 1
 
@@ -164,10 +135,9 @@ def main() -> None:
 
         print(f"\n{'DRY RUN ' if args.dry_run else ''}SUMMARY")
         print("=" * 40)
-        print(f"Occupations in CSV:          {len(occupations)}")
-        print(f"Updated with alt titles:     {updated}")
-        print(f"Cleared (no matched titles): {cleared}")
-        print(f"Not found in DB:             {not_found}")
+        print(f"ESCO occupations in CSV:   {len(uri_titles)}")
+        print(f"Occupations updated:       {updated}")
+        print(f"URIs not found in DB:      {not_found}")
 
     except Exception:
         conn.rollback()
