@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import logging
 import os
 import sys
@@ -36,6 +37,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import cohere
+import httpx
 import numpy as np
 import psycopg2
 from dotenv import load_dotenv
@@ -54,6 +56,11 @@ ONET_OCCUPATION_DATA = DATA_DIR / "Occupation_Data.txt"
 
 # Output file
 OUTPUT_CSV = OUTPUT_DIR / "esco_onet_matched_titles.csv"
+CHECKPOINT_FILE = OUTPUT_DIR / "match_checkpoint.json"
+
+# Retry settings
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 5  # seconds
 
 # Cohere settings
 EMBED_MODEL = "embed-english-v3.0"
@@ -62,7 +69,7 @@ EMBED_BATCH_SIZE = 96  # Cohere's max batch size
 
 # Matching defaults
 DEFAULT_CODE_THRESHOLD = 0.55    # Min similarity for O*NET code match
-DEFAULT_TITLE_THRESHOLD = 0.40   # Min similarity for keeping an alt title
+DEFAULT_TITLE_THRESHOLD = 0.48   # Min similarity for keeping an alt title
 DEFAULT_MAX_ONET_CODES = 3       # Max O*NET codes to match per ESCO occupation
 
 # ---------------------------------------------------------------------------
@@ -220,19 +227,29 @@ def get_cohere_client() -> cohere.Client:
 
 def embed_texts(client: cohere.Client, texts: list[str]) -> np.ndarray:
     """
-    Embed a list of texts using Cohere, handling batching.
+    Embed a list of texts using Cohere, handling batching with retries.
 
     Returns: numpy array of shape (len(texts), embedding_dim)
     """
     all_embeddings = []
     for i in range(0, len(texts), EMBED_BATCH_SIZE):
         batch = texts[i:i + EMBED_BATCH_SIZE]
-        response = client.embed(
-            texts=batch,
-            model=EMBED_MODEL,
-            input_type=EMBED_INPUT_TYPE,
-        )
-        all_embeddings.extend(response.embeddings)
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                response = client.embed(
+                    texts=batch,
+                    model=EMBED_MODEL,
+                    input_type=EMBED_INPUT_TYPE,
+                )
+                all_embeddings.extend(response.embeddings)
+                break
+            except (httpx.RemoteProtocolError, httpx.ReadError, httpx.ConnectError) as e:
+                if attempt == MAX_RETRIES:
+                    raise
+                delay = RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                logger.warning("    Embed request failed (attempt %d/%d): %s. Retrying in %ds...",
+                               attempt, MAX_RETRIES, e, delay)
+                time.sleep(delay)
         if i + EMBED_BATCH_SIZE < len(texts):
             time.sleep(0.5)  # Rate limit courtesy
     return np.array(all_embeddings)
@@ -349,7 +366,7 @@ def match_isco_group(
         if len(above) == 0:
             # Fallback: single best if reasonably close
             best_idx = int(np.argmax(scores))
-            if scores[best_idx] >= threshold * 0.8:
+            if scores[best_idx] >= threshold * 0.9:
                 above = np.array([best_idx])
             else:
                 results.append({
@@ -468,12 +485,25 @@ def main() -> None:
         groups_to_process = groups_to_process[:5]
         logger.info("[DRY RUN] Processing first 5 ISCO groups only")
 
+    # Load checkpoint if resuming
+    completed_iscos: set[str] = set()
+    if not args.isco and CHECKPOINT_FILE.exists():
+        checkpoint = json.loads(CHECKPOINT_FILE.read_text(encoding="utf-8"))
+        completed_iscos = set(checkpoint.get("completed_iscos", []))
+        all_results = checkpoint.get("results", [])
+        logger.info("Resuming from checkpoint: %d ISCO groups already done, %d results loaded",
+                    len(completed_iscos), len(all_results))
+
     skipped = 0
     for i, isco in enumerate(groups_to_process):
+        if isco in completed_iscos:
+            continue
+
         esco_occs = esco_groups[isco]
 
         if isco not in crosswalk:
             skipped += 1
+            completed_iscos.add(isco)
             continue
 
         onet_codes = crosswalk[isco]
@@ -490,6 +520,14 @@ def main() -> None:
             max_onet_codes=args.max_codes,
         )
         all_results.extend(results)
+        completed_iscos.add(isco)
+
+        # Save checkpoint after each ISCO group
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        CHECKPOINT_FILE.write_text(json.dumps({
+            "completed_iscos": sorted(completed_iscos),
+            "results": all_results,
+        }, ensure_ascii=False), encoding="utf-8")
 
         # Print sample matches for visibility
         for r in results[:2]:
@@ -528,6 +566,11 @@ def main() -> None:
                     total_before, total_after,
                     (1 - total_after / total_before) * 100)
     logger.info("Output: %s", OUTPUT_CSV)
+
+    # Clean up checkpoint on successful completion
+    if CHECKPOINT_FILE.exists():
+        CHECKPOINT_FILE.unlink()
+        logger.info("Checkpoint file removed")
 
 
 if __name__ == "__main__":
