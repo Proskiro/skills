@@ -84,7 +84,6 @@ class PostgresPipeline:
                 description,
                 isco_code,
                 broader_isco_group_uri,
-                class_name,
                 status,
                 is_leaf,
                 is_functional_leaf,
@@ -100,7 +99,6 @@ class PostgresPipeline:
                 description              = EXCLUDED.description,
                 isco_code                = EXCLUDED.isco_code,
                 broader_isco_group_uri   = EXCLUDED.broader_isco_group_uri,
-                class_name               = EXCLUDED.class_name,
                 status                   = EXCLUDED.status,
                 is_leaf                  = EXCLUDED.is_leaf,
                 is_functional_leaf       = EXCLUDED.is_functional_leaf,
@@ -116,7 +114,6 @@ class PostgresPipeline:
                 item.get("description"),
                 item.get("isco_code"),
                 item.get("broader_isco_group_uri"),
-                item.get("class_name"),
                 item.get("status"),
                 item.get("is_leaf"),
                 item.get("is_functional_leaf"),
@@ -143,9 +140,6 @@ class PostgresPipeline:
             item.get("description"),
             item.get("skill_type"),
             item.get("skill_code"),
-            item.get("class_name"),
-            item.get("reuse_level"),
-            item.get("scope_note"),
             item.get("broader_skill_uri"),
             item.get("is_leaf"),
             item.get("is_functional_leaf"),
@@ -177,7 +171,7 @@ class PostgresPipeline:
                 query = """
                 INSERT INTO skills (
                     uri, preferred_title, alt_label, description, skill_type,
-                    skill_code, class_name, reuse_level, scope_note, broader_skill_uri,
+                    skill_code, broader_skill_uri,
                     is_leaf, is_functional_leaf
                 )
                 VALUES %s
@@ -188,9 +182,6 @@ class PostgresPipeline:
                     description           = COALESCE(EXCLUDED.description, skills.description),
                     skill_type            = COALESCE(EXCLUDED.skill_type, skills.skill_type),
                     skill_code            = COALESCE(EXCLUDED.skill_code, skills.skill_code),
-                    class_name            = COALESCE(EXCLUDED.class_name, skills.class_name),
-                    reuse_level           = COALESCE(EXCLUDED.reuse_level, skills.reuse_level),
-                    scope_note            = COALESCE(EXCLUDED.scope_note, skills.scope_note),
                     broader_skill_uri     = COALESCE(EXCLUDED.broader_skill_uri, skills.broader_skill_uri),
                     is_leaf               = EXCLUDED.is_leaf,
                     is_functional_leaf    = EXCLUDED.is_functional_leaf,

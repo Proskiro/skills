@@ -1,5 +1,5 @@
 import psycopg2
-from psycopg2.extras import Json, execute_values
+from psycopg2.extras import execute_values
 
 
 def save_books(conn, books):
@@ -11,8 +11,7 @@ def save_books(conn, books):
     sql = """
     INSERT INTO books (
         source, external_id, isbn_10, isbn_13, title, authors,
-        description, subjects, language_code, published_year, 
-        average_rating, ratings_count, metadata
+        description, language_code, published_year
     )
     VALUES %s
     ON CONFLICT (source, external_id) DO NOTHING;
@@ -27,12 +26,8 @@ def save_books(conn, books):
             b["title"],
             b["authors"],
             b["description"],
-            b["subjects"],
             b["language_code"],
             b["published_year"],
-            b["average_rating"],
-            b["ratings_count"],
-            Json(b["metadata"]),
         )
         for b in books
     ]
