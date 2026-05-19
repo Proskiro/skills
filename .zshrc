@@ -103,7 +103,7 @@ eval "$(pyenv init -)"
 
 # Created by `pipx` on 2024-04-22 10:41:19
 export PATH="$PATH:/Users/eikram/.local/bin"
-export ZYTE_API_KEY=REDACTED_ZYTE_API_KEY
+# export ZYTE_API_KEY=  # set in ~/.env.secrets (not committed)
 
 # Disable buildkit so podman/buildah is used
 export DOCKER_BUILDKIT=0
@@ -111,4 +111,4 @@ export PATH="/opt/homebrew/opt/imagemagick@6/bin:$PATH"
 export SSL_CERT_FILE=$HOME/.zscalercerts/bundle.pem
 export REQUESTS_CA_BUNDLE=$SSL_CERT_FILE
 export CHROMIUM_BIN=/Applications/Chromium.app/Contents/MacOS/Chromium
-export NOCODB_APIKEY=REDACTED_NOCODB_KEY
+

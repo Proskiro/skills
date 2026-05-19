@@ -43,6 +43,12 @@ pip-wheel-metadata/
 *.swp
 Thumbs.db
 
+# --- Shell config (may contain secrets) ---
+.zshrc
+.bashrc
+.bash_profile
+.zprofile
+
 # --- Test / Coverage ---
 .pytest_cache/
 .tox/
