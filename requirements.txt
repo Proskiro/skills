@@ -1,4 +1,5 @@
 scrapy==2.12.0
+Twisted>=18.7.0,<25
 scrapy-zyte-api==0.24.0
 scrapy-splash==0.11.1
 psycopg2-binary==2.9.9
