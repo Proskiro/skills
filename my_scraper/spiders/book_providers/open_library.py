@@ -83,7 +83,14 @@ class OpenLibraryClient:
         url = f"{self.BASE_URL}{endpoint}"
 
         for attempt in range(1, max_attempts + 1):
-            last_response = requests.get(url, params=params, timeout=20)
+            try:
+                last_response = requests.get(url, params=params, timeout=20)
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                base = min(60, 2 ** (attempt - 1))
+                sleep_s = base + random.uniform(0, 0.5 * base)
+                print(f"  [WARN] Open Library network error (attempt {attempt}/{max_attempts}): {e} — retrying in {sleep_s:.1f}s")
+                time.sleep(sleep_s)
+                continue
 
             if last_response.status_code == 200:
                 return last_response
