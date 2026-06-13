@@ -26,15 +26,117 @@ Pipeline:
 6. Persist top 5 books per source to DB with skill linkage
 
 CLI Arguments:
-    --force-refresh              Ignore recently fetched check, re-fetch all sources
-    --skill-limit N              Max skills to process (default 3000)
+    --force-refresh              Bypass the per-pair freshness gate, re-process all pairs
+    --skill-limit N              Max skill-occupation pairs to fetch from DB (default 3000)
     --book-limit N               Max books per source (default 120)
     --primary-years-lookback N   Years back for primary search (default 6)
     --fallback-years-lookback N  Years back for year fallback (default 8)
-    --freshness_days N           Skip skills fetched within N days (default 1)
-    --fill-gaps-only             Only search skills with zero books
+    --freshness_days N           Per-pair shard gate: skip pairs with any
+                                 book_search_attempts row newer than N days
+                                 (default 90, ignores source column)
+    --fill-gaps-only             Only search pairs with zero books
     --featured-only              Only search skills for featured occupations
+    --shard CODES                Filter by ISCO group prefix on occupations.isco_code.
+                                 Single digit  (--shard=2)     → LEFT(o.isco_code, 2) IN ('C2')
+                                 Two digit     (--shard=21)    → LEFT(o.isco_code, 3) IN ('C21')
+                                 Comma list    (--shard=21,22) → multiple, same length only
+                                 Mixing single and two-digit values is rejected.
+    --max-pairs N                Stop cleanly after processing N (skill, occupation) pairs.
+                                 Stops between pairs so book_search_attempts stays consistent.
     --semantic-model             'cohere' (rerank, default) or 'cohere_embed' (embed, legacy)
+
+Shard plan for a full manual catalogue pass (≈ half-day sessions).
+The 90-day per-pair freshness gate is the default, so --freshness_days is
+only needed when you want a different window:
+
+    # Large groups — split by sub-major group
+    python -m my_services.search_books_for_skills --shard=21  # Science & engineering professionals
+    python -m my_services.search_books_for_skills --shard=22  # Health professionals
+    python -m my_services.search_books_for_skills --shard=23  # Teaching professionals
+    python -m my_services.search_books_for_skills --shard=24  # Business & admin professionals
+    python -m my_services.search_books_for_skills --shard=25  # ICT professionals
+    python -m my_services.search_books_for_skills --shard=26  # Legal, social, cultural professionals
+
+    # Technicians — check pair count first; sub-split if needed
+    python -m my_services.search_books_for_skills --shard=3
+
+    # Smaller groups — combine as needed
+    python -m my_services.search_books_for_skills --shard=1        # Managers
+    python -m my_services.search_books_for_skills --shard=7        # Trades
+    python -m my_services.search_books_for_skills --shard=4,5      # Clerical + Services
+    python -m my_services.search_books_for_skills --shard=6,8,9,0  # Everything else
+
+    # Cap a session at 200 pairs if needed
+    python -m my_services.search_books_for_skills --shard=21 --max-pairs=200
+
+    # Override the default 90-day freshness window
+    python -m my_services.search_books_for_skills --shard=25 --freshness_days=30
+
+
+    ISCO-08
+│
+├── 0  Armed Forces Occupations
+│   ├── 01  Commissioned Armed Forces Officers
+│   ├── 02  Non-commissioned Armed Forces Officers
+│   └── 03  Armed Forces Occupations, Other Ranks
+│
+├── 1  Managers
+│   ├── 11  Chief Executives, Senior Officials and Legislators
+│   ├── 12  Administrative and Commercial Managers
+│   ├── 13  Production and Specialised Services Managers
+│   └── 14  Hospitality, Retail and Other Services Managers
+│
+├── 2  Professionals
+│   ├── 21  Science and Engineering Professionals
+│   ├── 22  Health Professionals
+│   ├── 23  Teaching Professionals
+│   ├── 24  Business and Administration Professionals
+│   ├── 25  Information and Communications Technology Professionals
+│   └── 26  Legal, Social and Cultural Professionals
+│
+├── 3  Technicians and Associate Professionals
+│   ├── 31  Science and Engineering Associate Professionals
+│   ├── 32  Health Associate Professionals
+│   ├── 33  Business and Administration Associate Professionals
+│   ├── 34  Legal, Social, Cultural and Related Associate Professionals
+│   └── 35  Information and Communications Technicians
+│
+├── 4  Clerical Support Workers
+│   ├── 41  General and Keyboard Clerks
+│   ├── 42  Customer Services Clerks
+│   ├── 43  Numerical and Material Recording Clerks
+│   └── 44  Other Clerical Support Workers
+│
+├── 5  Services and Sales Workers
+│   ├── 51  Personal Services Workers
+│   ├── 52  Sales Workers
+│   ├── 53  Personal Care Workers
+│   └── 54  Protective Services Workers
+│
+├── 6  Skilled Agricultural, Forestry and Fishery Workers
+│   ├── 61  Market-oriented Skilled Agricultural Workers
+│   ├── 62  Market-oriented Skilled Forestry, Fishery and Hunting Workers
+│   └── 63  Subsistence Farmers, Fishers, Hunters and Gatherers
+│
+├── 7  Craft and Related Trades Workers
+│   ├── 71  Building and Related Trades Workers (excluding Electricians)
+│   ├── 72  Metal, Machinery and Related Trades Workers
+│   ├── 73  Handicraft and Printing Workers
+│   ├── 74  Electrical and Electronic Trades Workers
+│   └── 75  Food Processing, Woodworking, Garment and Other Craft and Related Trades Workers
+│
+├── 8  Plant and Machine Operators and Assemblers
+│   ├── 81  Stationary Plant and Machine Operators
+│   ├── 82  Assemblers
+│   └── 83  Drivers and Mobile Plant Operators
+│
+└── 9  Elementary Occupations
+    ├── 91  Cleaners and Helpers
+    ├── 92  Agricultural, Forestry and Fishery Labourers
+    ├── 93  Labourers in Mining, Construction, Manufacturing and Transport
+    ├── 94  Food Preparation Assistants
+    ├── 95  Street and Related Sales and Services Workers
+    └── 96  Refuse Workers and Other Elementary Workers
 """
 
 import argparse
@@ -569,82 +671,193 @@ def description_quality_check(book: Dict) -> bool:
     return True
 
 
-def fetch_skills(limit: int = 50, featured_only: bool = False, fill_gaps_only: bool = False) -> List[Dict]:
+def _parse_shard(shard_arg: str):
+    """Parse --shard CLI value into (prefix_length, shard_values).
+
+    Single-digit shards (e.g. "2", "2,3")    -> prefix_length=2, values=['C2', 'C3']
+    Two-digit shards   (e.g. "21", "21,22")  -> prefix_length=3, values=['C21', 'C22']
+
+    Mixing single- and two-digit values is rejected. All entries must be digits.
+    Returns (None, None) when shard_arg is falsy.
+    """
+    if shard_arg is None or shard_arg == "":
+        return None, None
+
+    parts = [p.strip() for p in shard_arg.split(",") if p.strip()]
+    if not parts:
+        raise ValueError("--shard cannot be empty")
+
+    for p in parts:
+        if not p.isdigit():
+            raise ValueError(
+                f"--shard values must be digits only, got '{p}' in '{shard_arg}'"
+            )
+
+    lengths = {len(p) for p in parts}
+    if len(lengths) > 1:
+        raise ValueError(
+            f"--shard values must all have the same length (no mixing single- "
+            f"and two-digit shards). Got: {parts}"
+        )
+
+    digit_len = lengths.pop()
+    if digit_len not in (1, 2):
+        raise ValueError(
+            f"--shard values must be 1 or 2 digits each, got length {digit_len}: {parts}"
+        )
+
+    prefix_length = 1 + digit_len  # 'C' + N digits
+    shard_values = [f"C{p}" for p in parts]
+    return prefix_length, shard_values
+
+
+def _build_skill_query_parts(
+    featured_only: bool,
+    fill_gaps_only: bool,
+    shard_prefix_length,
+    shard_values,
+    freshness_days,
+):
+    """Assemble FROM/JOIN/WHERE clauses + parameter list shared by the
+    fetch_skills SELECT and the count_pairs COUNT(*) query."""
+    joins = [
+        "FROM skills s",
+        "JOIN occupation_skills os ON s.uri = os.skill_uri",
+        "JOIN occupations o ON os.occupation_uri = o.uri",
+        "LEFT JOIN skills bs ON s.broader_skill_uri = bs.uri",
+    ]
+    where_clauses = [
+        "s.skill_type ILIKE 'knowledge'",
+        "s.description IS NOT NULL",
+        "o.uri IS NOT NULL",
+        "s.is_leaf = TRUE",
+    ]
+    params: list = []
+
+    if featured_only:
+        where_clauses.append("o.is_featured = TRUE")
+
     if fill_gaps_only:
-        # Gap-filling query: find skills with zero books
-        sql = """
-            SELECT s.uri,
-            s.skill_code,
-            s.preferred_title AS skill_title,
-            s.description,
-            s.books_last_fetched_at,
-            os.occupation_uri,
-            o.preferred_title AS occupation_title,
-            bs.preferred_title AS broader_skill_title,
-            s.alt_label
-            FROM skills s
-            LEFT JOIN occupation_skills os
-            ON s.uri = os.skill_uri
-            LEFT JOIN occupations o
-            ON os.occupation_uri = o.uri
-            LEFT JOIN skill_book_matches sbm
-            ON sbm.skill_uri = s.uri
-            AND sbm.occupation_uri = os.occupation_uri
-            LEFT JOIN skills bs
-            ON s.broader_skill_uri = bs.uri
-            WHERE s.skill_type ILIKE 'knowledge'
-            AND s.description is not NULL
-            AND o.uri is not NULL
-            AND s.is_leaf = TRUE
-            AND sbm.skill_uri IS NULL
-            {featured_filter}
-            GROUP BY s.uri, s.skill_code, s.preferred_title, s.description,
-                     s.books_last_fetched_at, os.occupation_uri, o.preferred_title,
-                     bs.preferred_title, s.alt_label
-            ORDER BY skill_code
+        joins.append(
+            "LEFT JOIN skill_book_matches sbm "
+            "ON sbm.skill_uri = s.uri AND sbm.occupation_uri = os.occupation_uri"
+        )
+        where_clauses.append("sbm.skill_uri IS NULL")
+
+    if shard_values:
+        placeholders = ",".join(["%s"] * len(shard_values))
+        where_clauses.append(f"LEFT(o.isco_code, %s) IN ({placeholders})")
+        params.append(shard_prefix_length)
+        params.extend(shard_values)
+
+    if freshness_days is not None:
+        where_clauses.append(
+            "NOT EXISTS ("
+            "SELECT 1 FROM book_search_attempts bsa "
+            "WHERE bsa.skill_uri = s.uri "
+            "AND bsa.occupation_uri = os.occupation_uri "
+            "AND bsa.searched_at > NOW() - make_interval(days => %s)"
+            ")"
+        )
+        params.append(freshness_days)
+
+    joins_sql = "\n            ".join(joins)
+    where_sql = "\n              AND ".join(where_clauses)
+    return joins_sql, where_sql, params
+
+
+def count_pairs(
+    featured_only: bool = False,
+    fill_gaps_only: bool = False,
+    shard_prefix_length=None,
+    shard_values=None,
+    freshness_days=None,
+) -> int:
+    """Count (skill, occupation) pairs that match the same filters as fetch_skills.
+
+    Used for pre-run sanity output so we can report shard size and a rough
+    runtime estimate before kicking off a long run.
+    """
+    joins_sql, where_sql, params = _build_skill_query_parts(
+        featured_only=featured_only,
+        fill_gaps_only=fill_gaps_only,
+        shard_prefix_length=shard_prefix_length,
+        shard_values=shard_values,
+        freshness_days=freshness_days,
+    )
+    sql = f"""
+        SELECT COUNT(*)
+            {joins_sql}
+            WHERE {where_sql};
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return cur.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def fetch_skills(
+    limit: int = 50,
+    featured_only: bool = False,
+    fill_gaps_only: bool = False,
+    shard_prefix_length=None,
+    shard_values=None,
+    freshness_days=None,
+) -> List[Dict]:
+    """Fetch (skill, occupation) pairs ready for book search.
+
+    Args:
+        limit: Maximum number of pairs to return.
+        featured_only: Restrict to skills attached to featured occupations.
+        fill_gaps_only: Restrict to pairs that have zero books in skill_book_matches.
+        shard_prefix_length: 2 or 3 — how many characters of o.isco_code to compare.
+            When set, shard_values must also be provided.
+        shard_values: List of ISCO prefix codes (e.g. ['C2'] or ['C21', 'C22']) used
+            as the IN-list for the LEFT(o.isco_code, prefix_length) filter.
+        freshness_days: When set, exclude pairs that have any book_search_attempts
+            row newer than this many days (any source). force-refresh callers should
+            pass None to bypass the gate.
+
+    Note: Per-source 1-day freshness inside the main loop is unrelated to this gate.
+    """
+    joins_sql, where_sql, params = _build_skill_query_parts(
+        featured_only=featured_only,
+        fill_gaps_only=fill_gaps_only,
+        shard_prefix_length=shard_prefix_length,
+        shard_values=shard_values,
+        freshness_days=freshness_days,
+    )
+
+    sql = f"""
+        SELECT s.uri,
+               s.skill_code,
+               s.preferred_title AS skill_title,
+               s.description,
+               s.books_last_fetched_at,
+               os.occupation_uri,
+               o.preferred_title AS occupation_title,
+               bs.preferred_title AS broader_skill_title,
+               s.alt_label
+            {joins_sql}
+            WHERE {where_sql}
+            ORDER BY s.skill_code
             LIMIT %s;
-        """.format(featured_filter="AND o.is_featured = TRUE" if featured_only else "")
-    else:
-        # Standard query: all skills
-        sql = """
-            SELECT s.uri,
-            s.skill_code,
-            s.preferred_title AS skill_title,
-            s.description,
-            s.books_last_fetched_at,
-            os.occupation_uri,
-            o.preferred_title AS occupation_title,
-            bs.preferred_title AS broader_skill_title,
-            s.alt_label
-            FROM skills s
-
-            LEFT JOIN occupation_skills os
-            ON s.uri = os.skill_uri
-
-            LEFT JOIN occupations o
-            ON os.occupation_uri = o.uri
-
-            LEFT JOIN skills bs
-            ON s.broader_skill_uri = bs.uri
-            WHERE s.skill_type ILIKE 'knowledge'
-            AND s.description is not NULL
-            AND o.uri is not NULL
-            AND s.is_leaf = TRUE
-            {featured_filter}
-            ORDER BY skill_code
-            LIMIT %s;
-        """.format(featured_filter="AND o.is_featured = TRUE" if featured_only else "")
+    """
+    params = list(params) + [limit]
 
     conn = get_db_connection()
     with conn.cursor() as cur:
-        cur.execute(sql, (limit,))
+        cur.execute(sql, params)
         rows = cur.fetchall()
 
     conn.close()
 
     skills = []
     excluded_count = 0
-    
+
     for r in rows:
         skill_uri = r[0]
         skill_title = r[2]
@@ -673,10 +886,10 @@ def fetch_skills(limit: int = 50, featured_only: bool = False, fill_gaps_only: b
             "broader_skill_title": broader_skill_title,
             "alt_label": alt_label,
         })
-    
+
     if excluded_count > 0:
         print(f"  [CONTENT FILTER] Excluded {excluded_count} skills/occupations")
-    
+
     return skills
 
 
@@ -1242,26 +1455,92 @@ def _persist_books(conn, skill: Dict, top_books: List[Dict], fallback_tier: int 
     return conn
 
 
-def run_search(skill_limit=1000, book_limit=60, min_year=2020, fallback_min_year=None, force_refresh=False, max_age_days=1, featured_only=False, fill_gaps_only=False, dry_run=False):
+def _format_runtime_estimate(pair_count: int, seconds_per_pair: int = 30) -> str:
+    """Rough wall-clock estimate, formatted as e.g. '2h 15m' or '45m'."""
+    total_seconds = pair_count * seconds_per_pair
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes = remainder // 60
+    if hours and minutes:
+        return f"{hours}h {minutes}m"
+    if hours:
+        return f"{hours}h"
+    return f"{minutes}m"
+
+
+def run_search(
+    skill_limit=1000,
+    book_limit=60,
+    min_year=2020,
+    fallback_min_year=None,
+    force_refresh=False,
+    max_age_days=1,
+    featured_only=False,
+    fill_gaps_only=False,
+    dry_run=False,
+    shard_prefix_length=None,
+    shard_values=None,
+    freshness_days=None,
+    max_pairs=None,
+):
     google_client = GoogleBooksClient()
     open_library_client = OpenLibraryClient()
 
-    skills = fetch_skills(limit=skill_limit, featured_only=featured_only, fill_gaps_only=fill_gaps_only)
+    # ----- Pre-run sanity output --------------------------------------------
+    if shard_values:
+        print(f"Shard active: {shard_values} "
+              f"(filter: LEFT(o.isco_code, {shard_prefix_length}) IN {tuple(shard_values)})")
+    else:
+        print("Shard: <none> (full catalogue)")
+
+    effective_freshness = None if force_refresh else freshness_days
+    if force_refresh:
+        print("Force refresh enabled — bypassing per-pair freshness gate")
+    elif effective_freshness is not None:
+        print(f"Per-pair freshness gate: skipping pairs with any "
+              f"book_search_attempts row newer than {effective_freshness} days")
+
+    pair_count = count_pairs(
+        featured_only=featured_only,
+        fill_gaps_only=fill_gaps_only,
+        shard_prefix_length=shard_prefix_length,
+        shard_values=shard_values,
+        freshness_days=effective_freshness,
+    )
+    print(f"Matching (skill, occupation) pairs: {pair_count:,}")
+    print(f"Rough runtime estimate (≈ 30s/pair): {_format_runtime_estimate(pair_count)}")
+    if max_pairs is not None:
+        print(f"--max-pairs cap: {max_pairs} "
+              f"(≈ {_format_runtime_estimate(min(pair_count, max_pairs))} of work)")
+    print(f"--skill-limit (DB fetch cap): {skill_limit}")
+    print("-" * 60)
+
+    skills = fetch_skills(
+        limit=skill_limit,
+        featured_only=featured_only,
+        fill_gaps_only=fill_gaps_only,
+        shard_prefix_length=shard_prefix_length,
+        shard_values=shard_values,
+        freshness_days=effective_freshness,
+    )
     results = []
     conn = get_db_connection()
 
     if featured_only:
         print("Filtering to featured occupations only")
-    if force_refresh:
-        print("Force refresh enabled - ignoring recently fetched check")
-    else:
-        print(f"Skipping skills fetched within the last {max_age_days} day(s)")
+    print(f"Per-source freshness window inside main loop: {max_age_days} day(s)")
 
     rerank_fn = get_rerank_function()
     rerank_failures = 0
     MAX_RERANK_FAILURES = 3
 
     for i, skill in enumerate(skills, start=1):
+        # --max-pairs safety valve: stop cleanly *between* pairs so that any
+        # book_search_attempts writes for the previous pair are already committed.
+        if max_pairs is not None and i > max_pairs:
+            print(f"\nReached --max-pairs={max_pairs} cap. Stopping cleanly "
+                  f"after {max_pairs} pairs.")
+            break
+
         print("\n" + "=" * 60)
         print(
             f"[{i}/{len(skills)}] Skill: {skill['title']} (for {skill.get('occupation_title', 'general')})"
@@ -1638,8 +1917,25 @@ if __name__ == "__main__":
     parser.add_argument(
         "--freshness_days",
         type=int,
-        default=1,
-        help="Skip skills fetched within this many days (default: 1)",
+        default=90,
+        help="Per-pair shard gate: skip (skill, occupation) pairs with any "
+             "book_search_attempts row newer than N days (default: 90). "
+             "Independent from the per-source 1-day check inside the main loop.",
+    )
+    parser.add_argument(
+        "--shard",
+        type=str,
+        default=None,
+        help="Filter pairs by ISCO group prefix on occupations.isco_code. "
+             "Single digit (e.g. 2), two digits (e.g. 21), or comma list of one type "
+             "(21,22). Mixing single- and two-digit values is rejected.",
+    )
+    parser.add_argument(
+        "--max-pairs",
+        type=int,
+        default=None,
+        help="Stop cleanly after N (skill, occupation) pairs have been processed. "
+             "Stops between pairs so book_search_attempts stays consistent.",
     )
     parser.add_argument(
         "--fill-gaps-only",
@@ -1665,6 +1961,12 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # Validate --shard early so a typo fails fast before any DB work.
+    try:
+        shard_prefix_length, shard_values = _parse_shard(args.shard)
+    except ValueError as e:
+        parser.error(str(e))
+
     # Calculate dynamic min_year if not explicitly provided
     if args.min_year is None:
         args.min_year = datetime.utcnow().year - args.primary_years_lookback
@@ -1688,8 +1990,12 @@ if __name__ == "__main__":
         min_year=args.min_year,
         fallback_min_year=args.fallback_min_year,
         force_refresh=args.force_refresh,
-        max_age_days=args.freshness_days,
+        max_age_days=1,  # per-source check inside the main loop is unrelated to --freshness_days
         featured_only=args.featured_only,
         fill_gaps_only=args.fill_gaps_only,
         dry_run=args.dry_run,
+        shard_prefix_length=shard_prefix_length,
+        shard_values=shard_values,
+        freshness_days=args.freshness_days,
+        max_pairs=args.max_pairs,
     )
