@@ -25,6 +25,27 @@ Pipeline:
 5. Rank filtered books using book_ranking.py scoring
 6. Persist top 5 books per source to DB with skill linkage
 
+Refresh optimisation (applies on every run, no extra flags needed):
+
+  a. Revalidation skip — before hitting any external API for a pair, the DB is
+     queried to count how many of its existing matched books still pass today's
+     year gate (published_year >= current_year - lookback) and have an ISBN.
+     If the count is >= TARGET_BOOKS_PER_SOURCE (5) the pair is considered fully
+     healthy: a fresh book_search_attempts record is written and the pair is
+     skipped with zero API or Cohere calls.  Pairs with 1–4 valid books fall
+     through to the normal search so the missing slots can be filled.
+
+  b. Extended window for dead pairs — the per-pair freshness gate in
+     _build_skill_query_parts normally skips a pair when its most recent
+     book_search_attempts row is newer than `freshness_days` (default 90).
+     When a pair has accumulated 2 or more zero-result attempts across any
+     source, the window is automatically extended to 180 days via an inline
+     SQL CASE expression.  No CLI flag or config change is required; the
+     threshold is derived entirely from the existing books_found history in
+     book_search_attempts.  The extended window self-corrects: if books are
+     ever found for that pair the zero-count drops below 2 and the 90-day
+     cadence resumes.
+
 CLI Arguments:
     --force-refresh              Bypass the per-pair freshness gate, re-process all pairs
     --skill-limit N              Max skill-occupation pairs to fetch from DB (default 3000)
@@ -165,6 +186,10 @@ _config = {"semantic_model": "cohere"}
 # Minimum relevance score from Cohere rerank to include a book
 # Scores below this are likely irrelevant matches
 MIN_RELEVANCE_SCORE = 0.3
+
+# How many valid books per (skill, occupation, source) triple must exist before
+# the revalidation logic considers the pair fully healthy and skips all API calls.
+_TARGET_BOOKS_PER_SOURCE = 5
 MIN_RELEVANCE_SCORE_FALLBACK = 0.16  # Lower threshold for fallback searches
 
 # Skill expansions: maps short/ambiguous skill names to expanded search terms.
@@ -751,12 +776,26 @@ def _build_skill_query_parts(
         params.extend(shard_values)
 
     if freshness_days is not None:
+        # The freshness window is dynamically extended to 180 days for pairs that
+        # have returned 0 books on 2 or more previous attempts (across any source).
+        # This avoids spending API quota on consistently empty pairs while still
+        # retrying them occasionally.  The CASE expression reads directly from the
+        # existing books_found history — no schema change required.
         where_clauses.append(
             "NOT EXISTS ("
             "SELECT 1 FROM book_search_attempts bsa "
             "WHERE bsa.skill_uri = s.uri "
             "AND bsa.occupation_uri = os.occupation_uri "
-            "AND bsa.searched_at > NOW() - make_interval(days => %s)"
+            "AND bsa.searched_at > NOW() - make_interval(days => ("
+            "    SELECT CASE "
+            "        WHEN COUNT(*) FILTER (WHERE bsa2.books_found = 0) >= 2 "
+            "        THEN 180 "
+            "        ELSE %s "
+            "    END "
+            "    FROM book_search_attempts bsa2 "
+            "    WHERE bsa2.skill_uri = s.uri "
+            "    AND bsa2.occupation_uri = os.occupation_uri"
+            "))"
             ")"
         )
         params.append(freshness_days)
@@ -1077,6 +1116,38 @@ def _get_existing_isbns_for_skill(
         if isbn_13:
             isbns.add(isbn_13)
     return isbns
+
+
+def _count_valid_existing_matches(
+    conn, skill_uri: str, occupation_uri: str, source: str, min_year: int
+) -> int:
+    """
+    Count how many already-persisted books for a (skill, occupation, source)
+    triple would still pass today's year gate and ISBN requirement.
+
+    This is the first check in the revalidation path: if the count is >=
+    _TARGET_BOOKS_PER_SOURCE the pair has a full healthy set and can be skipped
+    without any external API or Cohere calls.  A single cheap SQL query replaces
+    up to 6 API requests (3 Google + 3 Open Library) and one rerank call.
+
+    The min_year argument is computed once at run startup as
+    current_year - primary_years_lookback, so the threshold tightens
+    automatically each year without any config change.
+    """
+    sql = """
+        SELECT COUNT(*)
+        FROM skill_book_matches sbm
+        JOIN books b ON b.id = sbm.book_id
+        WHERE sbm.skill_uri = %s
+          AND sbm.occupation_uri = %s
+          AND b.source = %s
+          AND b.published_year IS NOT NULL
+          AND b.published_year >= %s
+          AND b.isbn_13 IS NOT NULL
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql, (skill_uri, occupation_uri, source, min_year))
+        return cur.fetchone()[0]
 
 
 def _fetch_multi_query(client, skill, source_name, book_limit, use_occupation=True):
@@ -1553,13 +1624,30 @@ def run_search(
             # ==============================================================
             google_top_isbns = set()
 
-            google_skipped = not force_refresh and has_books_from_source(
-                conn, skill["uri"], skill["occupation_uri"], "google_books", max_age_days=max_age_days
+            # Revalidation: count existing matches that still pass today's year gate.
+            # If already at a full set, mark fresh and skip all API/Cohere calls.
+            google_valid = _count_valid_existing_matches(
+                conn, skill["uri"], skill["occupation_uri"], "google_books", min_year
+            )
+            google_revalidated = not force_refresh and google_valid >= _TARGET_BOOKS_PER_SOURCE
+            google_skipped = google_revalidated or (
+                not force_refresh and has_books_from_source(
+                    conn, skill["uri"], skill["occupation_uri"], "google_books", max_age_days=max_age_days
+                )
             )
 
             google_pre_filter_count = 0
             if google_skipped:
-                print(f"  Skipping google_books (recently fetched)")
+                if google_revalidated:
+                    if not dry_run:
+                        record_search_attempt(
+                            conn, skill["uri"], skill["occupation_uri"],
+                            "google_books", books_found=google_valid,
+                        )
+                        conn.commit()
+                    print(f"  Skipping google_books — {google_valid} existing matches still valid (year >= {min_year})")
+                else:
+                    print(f"  Skipping google_books (recently fetched)")
                 # Still need ISBNs of Google's persisted books for cross-source dedup
                 google_top_isbns = _get_existing_isbns_for_skill(
                     conn, skill["uri"], skill["occupation_uri"], "google_books"
@@ -1598,12 +1686,29 @@ def run_search(
             # PHASE 2: Open Library (deduped against Google's final top 5)
             # ==============================================================
             ol_pre_filter_count = 0
-            ol_skipped = not force_refresh and has_books_from_source(
-                conn, skill["uri"], skill["occupation_uri"], "open_library", max_age_days=max_age_days
+
+            # Revalidation: same logic as Google Books above.
+            ol_valid = _count_valid_existing_matches(
+                conn, skill["uri"], skill["occupation_uri"], "open_library", min_year
+            )
+            ol_revalidated = not force_refresh and ol_valid >= _TARGET_BOOKS_PER_SOURCE
+            ol_skipped = ol_revalidated or (
+                not force_refresh and has_books_from_source(
+                    conn, skill["uri"], skill["occupation_uri"], "open_library", max_age_days=max_age_days
+                )
             )
 
             if ol_skipped:
-                print(f"  Skipping open_library (recently fetched)")
+                if ol_revalidated:
+                    if not dry_run:
+                        record_search_attempt(
+                            conn, skill["uri"], skill["occupation_uri"],
+                            "open_library", books_found=ol_valid,
+                        )
+                        conn.commit()
+                    print(f"  Skipping open_library — {ol_valid} existing matches still valid (year >= {min_year})")
+                else:
+                    print(f"  Skipping open_library (recently fetched)")
             else:
                 print("  --- Open Library ---")
                 ol_fallback_tier = 0  # Track fallback tier for Open Library
