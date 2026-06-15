@@ -27,6 +27,7 @@ EXCLUDED_OCCUPATION_KEYWORDS = {
     "bartender",
     "sommelier",
     "brewer",
+    "brewmaster",
     "distiller",
     "winemaker",
     "wine",
