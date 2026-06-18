@@ -57,6 +57,8 @@ CLI Arguments:
                                  (default 90, ignores source column)
     --fill-gaps-only             Only search pairs with zero books
     --featured-only              Only search skills for featured occupations
+    --no-search-attempt-writes   Persist books/results but do not write or update
+                                 book_search_attempts rows
     --shard CODES                Filter by ISCO group prefix on occupations.isco_code.
                                  Single digit  (--shard=2)     → LEFT(o.isco_code, 2) IN ('C2')
                                  Two digit     (--shard=21)    → LEFT(o.isco_code, 3) IN ('C21')
@@ -214,6 +216,9 @@ SKILL_EXPANSIONS = {
     "plc": "PLC Programmable Logic Controller",
     "hmi": "HMI Human-Machine Interface",
     "scada": "SCADA Supervisory Control Data Acquisition",
+    "ldap": "LDAP Lightweight Directory Access Protocol directory services",
+    "n1ql": "N1QL Couchbase SQL query language",
+    "mdx": "MDX Multidimensional Expressions OLAP",
     # Business/analytics acronyms
     "bi": "Business Intelligence analytics",
     "ml": "Machine Learning",
@@ -232,6 +237,7 @@ SKILL_EXPANSIONS = {
     "gcp": "GCP Google Cloud Platform",
     "iot": "IoT Internet of Things",
     "sap": "SAP enterprise software",
+    "sap r3": "SAP R3 SAP ERP enterprise resource planning",
     "bim": "BIM Building Information Modelling",
     "cad": "CAD Computer-Aided Design",
     "cam": "CAM Computer-Aided Manufacturing",
@@ -241,9 +247,25 @@ SKILL_EXPANSIONS = {
     "staf": "STAF Software Testing Automation Framework",
     "btl": "BTL below-the-line marketing technique",
     "lisp": "Lisp programming language",
+    "common lisp": "Common Lisp programming language",
     "prolog": "Prolog logic programming language",
     "smalltalk": "Smalltalk object-oriented programming language",
+    "objective-c": "Objective-C programming language Apple iOS macOS",
+    "coffeescript": "CoffeeScript programming language JavaScript",
+    "openedge advanced business language": "OpenEdge Advanced Business Language Progress 4GL programming",
+    "r": "R programming language data analysis statistics",
+    "perl": "Perl programming language scripting",
+    "scala": "Scala programming language JVM",
+    "cobol": "COBOL programming language enterprise systems",
+    "abap": "ABAP SAP programming language",
+    "apl": "APL programming language array programming",
+    "erlang": "Erlang programming language distributed systems",
+    "typescript": "TypeScript programming language JavaScript",
+    "vbscript": "VBScript Visual Basic Scripting",
+    "db2": "IBM DB2 relational database",
+    "kdevelop": "KDevelop integrated development environment IDE",
     "salt": "Salt SaltStack configuration management DevOps",
+    "staf": "STAF Software Testing Automation Framework",
     "cam software": "computer-aided manufacturing CAM software",
     "ict communications protocols": "ICT network communications protocols TCP/IP",
     "ict hardware specifications": "ICT computer hardware specifications",
@@ -1548,6 +1570,7 @@ def run_search(
     featured_only=False,
     fill_gaps_only=False,
     dry_run=False,
+    write_search_attempts=True,
     shard_prefix_length=None,
     shard_values=None,
     freshness_days=None,
@@ -1599,6 +1622,8 @@ def run_search(
     if featured_only:
         print("Filtering to featured occupations only")
     print(f"Per-source freshness window inside main loop: {max_age_days} day(s)")
+    if not write_search_attempts:
+        print("Search-attempt writes disabled — book_search_attempts will not be updated")
 
     rerank_fn = get_rerank_function()
     rerank_failures = 0
@@ -1639,7 +1664,7 @@ def run_search(
             google_pre_filter_count = 0
             if google_skipped:
                 if google_revalidated:
-                    if not dry_run:
+                    if not dry_run and write_search_attempts:
                         record_search_attempt(
                             conn, skill["uri"], skill["occupation_uri"],
                             "google_books", books_found=google_valid,
@@ -1666,7 +1691,8 @@ def run_search(
 
                 if not dry_run:
                     conn = _persist_books(conn, skill, google_top, fallback_tier=google_fallback_tier)
-                    record_search_attempt(conn, skill["uri"], skill["occupation_uri"], "google_books", books_found=len(google_top))
+                    if write_search_attempts:
+                        record_search_attempt(conn, skill["uri"], skill["occupation_uri"], "google_books", books_found=len(google_top))
                     conn.commit()
 
                 if google_filtered_count > 0:
@@ -1700,7 +1726,7 @@ def run_search(
 
             if ol_skipped:
                 if ol_revalidated:
-                    if not dry_run:
+                    if not dry_run and write_search_attempts:
                         record_search_attempt(
                             conn, skill["uri"], skill["occupation_uri"],
                             "open_library", books_found=ol_valid,
@@ -1941,7 +1967,8 @@ def run_search(
 
                 if not dry_run:
                     conn = _persist_books(conn, skill, ol_top, fallback_tier=ol_fallback_tier)
-                    record_search_attempt(conn, skill["uri"], skill["occupation_uri"], "open_library", books_found=len(ol_top))
+                    if write_search_attempts:
+                        record_search_attempt(conn, skill["uri"], skill["occupation_uri"], "open_library", books_found=len(ol_top))
                     conn.commit()
 
                 results.append({
@@ -2058,6 +2085,11 @@ if __name__ == "__main__":
         help="Print results without saving to DB",
     )
     parser.add_argument(
+        "--no-search-attempt-writes",
+        action="store_true",
+        help="Process and persist books, but do not write/update book_search_attempts rows",
+    )
+    parser.add_argument(
         "--semantic-model",
         type=str,
         choices=["cohere", "cohere_embed"],
@@ -2099,6 +2131,7 @@ if __name__ == "__main__":
         featured_only=args.featured_only,
         fill_gaps_only=args.fill_gaps_only,
         dry_run=args.dry_run,
+        write_search_attempts=not args.no_search_attempt_writes,
         shard_prefix_length=shard_prefix_length,
         shard_values=shard_values,
         freshness_days=args.freshness_days,
