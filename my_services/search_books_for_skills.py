@@ -114,7 +114,7 @@ only needed when you want a different window:
 │   ├── 22  Health Professionals
 │   ├── 23  Teaching Professionals
 │   ├── 24  Business and Administration Professionals
-│   ├── 25  Information and Communications Technology Professionals
+│   ├── 25  Information and Communications Technology Professionals*
 │   └── 26  Legal, Social and Cultural Professionals
 │
 ├── 3  Technicians and Associate Professionals
