@@ -1,7 +1,7 @@
 from my_tools.db import get_db_connection
 from urllib.parse import quote_plus
 
-AFFILIATE_TAG = "proskiro-21"
+AFFILIATE_TAG = "proskiro02-21"
 
 
 def create_affiliate_link(isbn_10, isbn_13, title=None):
