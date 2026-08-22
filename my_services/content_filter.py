@@ -36,6 +36,7 @@ EXCLUDED_OCCUPATION_KEYWORDS = {
     "distillery",
     "bar manager",
     "mixologist",
+    "cider",
     # Gambling/Casino-related
     "casino",
     "gambling",
@@ -122,6 +123,7 @@ EXCLUDED_SKILL_KEYWORDS = {
     "cocktail mixing",
     "bartending",
     "sommelier",
+    "cider",
     # Gambling/Casino-related skills
     "gambling",
     "casino games",
