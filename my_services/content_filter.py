@@ -93,6 +93,7 @@ EXCLUDED_OCCUPATION_KEYWORDS = {
     "music director",
     "composer",
     "songwriter",
+    "dance",
     "disc jockey",
     "dj",
     "sound engineer",
@@ -197,6 +198,7 @@ EXCLUDED_SKILL_KEYWORDS = {
     "conducting music",
     "songwriting",
     "music",
+    "dance"
 }
 
 
